@@ -234,6 +234,16 @@ SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::scalar> sqrt(simd<T
 }
 
 template <class T>
+SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::scalar> cbrt(simd<T, simd_abi::scalar> const& a) {
+  return simd<T, simd_abi::scalar>(std::cbrt(a.get()));
+}
+
+template <class T>
+SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::scalar> exp(simd<T, simd_abi::scalar> const& a) {
+  return simd<T, simd_abi::scalar>(std::exp(a.get()));
+}
+
+template <class T>
 SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::scalar> max(
     simd<T, simd_abi::scalar> const& a, simd<T, simd_abi::scalar> const& b) {
   return simd<T, simd_abi::scalar>(choose((a.get() < b.get()), b.get(), a.get()));
@@ -373,6 +383,22 @@ SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::directive<NBytes>> 
   simd<T, simd_abi::directive<NBytes>> result;
   using std::sqrt;
   SIMD_PRAGMA for (int i = 0; i < a.size(); ++i) result[i] = sqrt(a[i]);
+  return result;
+}
+
+template <class T, std::size_t NBytes>
+SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::directive<NBytes>> cbrt(simd<T, simd_abi::directive<NBytes>> const& a) {
+  simd<T, simd_abi::directive<NBytes>> result;
+  using std::cbrt;
+  SIMD_PRAGMA for (int i = 0; i < a.size(); ++i) result[i] = cbrt(a[i]);
+  return result;
+}
+
+template <class T, std::size_t NBytes>
+SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::directive<NBytes>> exp(simd<T, simd_abi::directive<NBytes>> const& a) {
+  simd<T, simd_abi::directive<NBytes>> result;
+  using std::exp;
+  SIMD_PRAGMA for (int i = 0; i < a.size(); ++i) result[i] = exp(a[i]);
   return result;
 }
 
