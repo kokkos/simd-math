@@ -1234,6 +1234,13 @@ SIMD_ALWAYS_INLINE inline simd<float, simd_abi::neon> sqrt(simd<float, simd_abi:
   return simd<float, simd_abi::neon>(vsqrtq_f32(a.get()));
 }
 
+SIMD_ALWAYS_INLINE inline simd<float, simd_abi::neon> fmadd(
+    simd<float, simd_abi::neon> const& a,
+    simd<float, simd_abi::neon> const& b,
+    simd<float, simd_abi::neon> const& c) {
+  return simd<float, simd_abi::neon>(vfmaq_f32(c.get(), b.get(), a.get()));
+}
+
 SIMD_ALWAYS_INLINE inline simd<float, simd_abi::neon> max(
     simd<float, simd_abi::neon> const& a, simd<float, simd_abi::neon> const& b) {
   return simd<float, simd_abi::neon>(vmaxq_f32(a.get(), b.get()));
@@ -1322,6 +1329,13 @@ class simd<double, simd_abi::neon> {
 
 SIMD_ALWAYS_INLINE inline simd<double, simd_abi::neon> sqrt(simd<double, simd_abi::neon> const& a) {
   return simd<double, simd_abi::neon>(vsqrtq_f64(a.get()));
+}
+
+SIMD_ALWAYS_INLINE inline simd<double, simd_abi::neon> fmadd(
+    simd<double, simd_abi::neon> const& a,
+    simd<double, simd_abi::neon> const& b,
+    simd<double, simd_abi::neon> const& c) {
+  return simd<double, simd_abi::neon>(vfmaq_f64(c.get(), b.get(), a.get()));
 }
 
 SIMD_ALWAYS_INLINE inline simd<double, simd_abi::neon> max(
