@@ -33,20 +33,26 @@
 
 #include <cmath>
 
+#ifndef SIMD_ALWAYS_INLINE
 #define SIMD_ALWAYS_INLINE [[gnu::always_inline]]
+#endif
 
+#ifndef SIMD_HOST_DEVICE
 #ifdef __CUDACC__
 #define SIMD_HOST_DEVICE __host__ __device__
 #else
 #define SIMD_HOST_DEVICE
 #endif
+#endif
 
+#ifndef SIMD_PRAGMA
 #if defined(_OPENMP)
 #define SIMD_PRAGMA _Pragma("omp simd")
 #elif defined(__clang__)
 #define SIMD_PRAGMA _Pragma("clang loop vectorize(enable)")
 #elif defined(__GNUC__)
 #define SIMD_PRAGMA _Pragma("GCC ivdep")
+#endif
 #endif
 
 #ifndef SIMD_NAMESPACE
