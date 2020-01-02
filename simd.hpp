@@ -471,6 +471,11 @@ SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::directive<NBytes>> 
   This is why the specializations that call these functions are protected with __INTEL_COMPILER.
  */
 
+/* Intel FMA disclaimer: it is hard to detect FMA across compilers
+   https://stackoverflow.com/questions/16348909/how-do-i-know-if-i-can-compile-with-fma-instruction-sets
+   it seems like the best we can do is __FMA__ or __AVX2__, since MSVC doesn't define __FMA__
+ */
+
 #ifdef __SSE__
 
 namespace simd_abi {
