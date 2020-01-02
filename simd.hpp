@@ -1439,6 +1439,13 @@ SIMD_ALWAYS_INLINE inline simd<float, simd_abi::vsx> sqrt(simd<float, simd_abi::
   return simd<float, simd_abi::vsx>(vec_sqrt(a.get()));
 }
 
+SIMD_ALWAYS_INLINE inline simd<float, simd_abi::vsx> fma(
+    simd<float, simd_abi::vsx> const& a,
+    simd<float, simd_abi::vsx> const& b,
+    simd<float, simd_abi::vsx> const& c) {
+  return simd<float, simd_abi::vsx>(vec_madd(a.get(), b.get(), c.get()));
+}
+
 SIMD_ALWAYS_INLINE inline simd<float, simd_abi::vsx> max(
     simd<float, simd_abi::vsx> const& a, simd<float, simd_abi::vsx> const& b) {
   return simd<float, simd_abi::vsx>(vec_max(a.get(), b.get()));
@@ -1523,6 +1530,13 @@ class simd<double, simd_abi::vsx> {
 
 SIMD_ALWAYS_INLINE inline simd<double, simd_abi::vsx> sqrt(simd<double, simd_abi::vsx> const& a) {
   return simd<double, simd_abi::vsx>(vec_sqrt(a.get()));
+}
+
+SIMD_ALWAYS_INLINE inline simd<double, simd_abi::vsx> fma(
+    simd<double, simd_abi::vsx> const& a,
+    simd<double, simd_abi::vsx> const& b,
+    simd<double, simd_abi::vsx> const& c) {
+  return simd<double, simd_abi::vsx>(vec_madd(a.get(), b.get(), c.get()));
 }
 
 SIMD_ALWAYS_INLINE inline simd<double, simd_abi::vsx> max(
