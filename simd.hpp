@@ -69,6 +69,14 @@ class simd_mask;
 
 class element_aligned_tag {};
 
+#ifndef SIMD_SCALAR_CHOOSE_DEFINED
+template <class T>
+HPC_ALWAYS_INLINE HPC_HOST_DEVICE constexpr T const&
+choose(bool a, T const& b, T const& c) {
+  return a ? b : c;
+}
+#endif
+
 template <class T, class Abi>
 SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, Abi>& operator+=(simd<T, Abi>& a, simd<T, Abi> const& b) {
   a = a + b;
@@ -212,21 +220,19 @@ SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::scalar> sqrt(simd<T
 template <class T>
 SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::scalar> max(
     simd<T, simd_abi::scalar> const& a, simd<T, simd_abi::scalar> const& b) {
-  using std::max;
-  return simd<T, simd_abi::scalar>(max(a.get(), b.get()));
+  return simd<T, simd_abi::scalar>(choose((a.get() < b.get()), b.get(), a.get()));
 }
 
 template <class T>
 SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::scalar> min(
     simd<T, simd_abi::scalar> const& a, simd<T, simd_abi::scalar> const& b) {
-  using std::min;
-  return simd<T, simd_abi::scalar>(min(a.get(), b.get()));
+  return simd<T, simd_abi::scalar>(choose((b.get() < a.get()), b.get(), a.get()));
 }
 
 template <class T>
 SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::scalar> choose(
     simd_mask<T, simd_abi::scalar> const& a, simd<T, simd_abi::scalar> const& b, simd<T, simd_abi::scalar> const& c) {
-  return simd<T, simd_abi::scalar>(a.get() ? b.get() : c.get());
+  return simd<T, simd_abi::scalar>(choose(a.get(), b.get(), c.get()));
 }
 
 #ifdef SIMD_PRAGMA
@@ -360,8 +366,10 @@ template <class T, std::size_t NBytes>
 SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::directive<NBytes>> max(
     simd<T, simd_abi::directive<NBytes>> const& a, simd<T, simd_abi::directive<NBytes>> const& b) {
   simd<T, simd_abi::directive<NBytes>> result;
-  using std::max;
-  SIMD_PRAGMA for (int i = 0; i < a.size(); ++i) result[i] = max(a[i], b[i]);
+  SIMD_PRAGMA
+  for (int i = 0; i < a.size(); ++i) {
+    result[i] = choose((a[i] < b[i]), b[i], a[i]);
+  }
   return result;
 }
 
@@ -369,8 +377,10 @@ template <class T, std::size_t NBytes>
 SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::directive<NBytes>> min(
     simd<T, simd_abi::directive<NBytes>> const& a, simd<T, simd_abi::directive<NBytes>> const& b) {
   simd<T, simd_abi::directive<NBytes>> result;
-  using std::min;
-  SIMD_PRAGMA for (int i = 0; i < a.size(); ++i) result[i] = min(a[i], b[i]);
+  SIMD_PRAGMA
+  for (int i = 0; i < a.size(); ++i) {
+    result[i] = choose((b[i] < a[i]), b[i], a[i]);
+  }
   return result;
 }
 
