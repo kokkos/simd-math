@@ -434,6 +434,10 @@ SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::directive<NBytes>> 
 
 #endif
 
+/* Intel SVML disclaimer: cbrt, exp, etc. are not intrinsics, they are Intel-proprietary library functions
+  https://stackoverflow.com/questions/36636159/where-is-clangs-mm256-pow-ps-intrinsic
+ */
+
 #ifdef __SSE__
 
 namespace simd_abi {
@@ -515,6 +519,12 @@ class simd<float, simd_abi::sse> {
 SIMD_ALWAYS_INLINE inline simd<float, simd_abi::sse> sqrt(simd<float, simd_abi::sse> const& a) {
   return simd<float, simd_abi::sse>(_mm_sqrt_ps(a.get()));
 }
+
+#ifdef __INTEL_COMPILER
+SIMD_ALWAYS_INLINE inline simd<float, simd_abi::sse> cbrt(simd<float, simd_abi::sse> const& a) {
+  return simd<float, simd_abi::sse>(_mm_cbrt_ps(a.get()));
+}
+#endif
 
 SIMD_ALWAYS_INLINE inline simd<float, simd_abi::sse> max(
     simd<float, simd_abi::sse> const& a, simd<float, simd_abi::sse> const& b) {
@@ -608,6 +618,12 @@ class simd<double, simd_abi::sse> {
 SIMD_ALWAYS_INLINE inline simd<double, simd_abi::sse> sqrt(simd<double, simd_abi::sse> const& a) {
   return simd<double, simd_abi::sse>(_mm_sqrt_pd(a.get()));
 }
+
+#ifdef __INTEL_COMPILER
+SIMD_ALWAYS_INLINE inline simd<double, simd_abi::sse> cbrt(simd<double, simd_abi::sse> const& a) {
+  return simd<double, simd_abi::sse>(_mm_cbrt_pd(a.get()));
+}
+#endif
 
 SIMD_ALWAYS_INLINE inline simd<double, simd_abi::sse> max(
     simd<double, simd_abi::sse> const& a, simd<double, simd_abi::sse> const& b) {
@@ -713,6 +729,12 @@ SIMD_ALWAYS_INLINE inline simd<float, simd_abi::avx> sqrt(simd<float, simd_abi::
   return simd<float, simd_abi::avx>(_mm256_sqrt_ps(a.get()));
 }
 
+#ifdef __INTEL_COMPILER
+SIMD_ALWAYS_INLINE inline simd<float, simd_abi::avx> cbrt(simd<float, simd_abi::avx> const& a) {
+  return simd<float, simd_abi::avx>(_mm256_cbrt_ps(a.get()));
+}
+#endif
+
 SIMD_ALWAYS_INLINE inline simd<float, simd_abi::avx> max(
     simd<float, simd_abi::avx> const& a, simd<float, simd_abi::avx> const& b) {
   return simd<float, simd_abi::avx>(_mm256_max_ps(a.get(), b.get()));
@@ -806,6 +828,12 @@ class simd<double, simd_abi::avx> {
 SIMD_ALWAYS_INLINE inline simd<double, simd_abi::avx> sqrt(simd<double, simd_abi::avx> const& a) {
   return simd<double, simd_abi::avx>(_mm256_sqrt_pd(a.get()));
 }
+
+#ifdef __INTEL_COMPILER
+SIMD_ALWAYS_INLINE inline simd<double, simd_abi::avx> cbrt(simd<double, simd_abi::avx> const& a) {
+  return simd<double, simd_abi::avx>(_mm256_cbrt_pd(a.get()));
+}
+#endif
 
 SIMD_ALWAYS_INLINE inline simd<double, simd_abi::avx> max(
     simd<double, simd_abi::avx> const& a, simd<double, simd_abi::avx> const& b) {
@@ -902,6 +930,12 @@ SIMD_ALWAYS_INLINE inline simd<float, simd_abi::avx512> sqrt(simd<float, simd_ab
   return simd<float, simd_abi::avx512>(_mm512_sqrt_ps(a.get()));
 }
 
+#ifdef __INTEL_COMPILER
+SIMD_ALWAYS_INLINE inline simd<float, simd_abi::avx512> cbrt(simd<float, simd_abi::avx512> const& a) {
+  return simd<float, simd_abi::avx512>(_mm512_cbrt_ps(a.get()));
+}
+#endif
+
 SIMD_ALWAYS_INLINE inline simd<float, simd_abi::avx512> max(
     simd<float, simd_abi::avx512> const& a, simd<float, simd_abi::avx512> const& b) {
   return simd<float, simd_abi::avx512>(_mm512_max_ps(a.get(), b.get()));
@@ -986,6 +1020,12 @@ class simd<double, simd_abi::avx512> {
 SIMD_ALWAYS_INLINE inline simd<double, simd_abi::avx512> sqrt(simd<double, simd_abi::avx512> const& a) {
   return simd<double, simd_abi::avx512>(_mm512_sqrt_pd(a.get()));
 }
+
+#ifdef __INTEL_COMPILER
+SIMD_ALWAYS_INLINE inline simd<double, simd_abi::avx512> cbrt(simd<double, simd_abi::avx512> const& a) {
+  return simd<double, simd_abi::avx512>(_mm512_cbrt_pd(a.get()));
+}
+#endif
 
 SIMD_ALWAYS_INLINE inline simd<double, simd_abi::avx512> max(
     simd<double, simd_abi::avx512> const& a, simd<double, simd_abi::avx512> const& b) {
