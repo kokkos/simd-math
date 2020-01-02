@@ -972,14 +972,17 @@ template <>
 class simd_mask<float, simd_abi::neon> {
   uint32x4_t m_value;
  public:
-  SIMD_ALWAYS_INLINE simd_mask() = default;
   using value_type = bool;
-  SIMD_ALWAYS_INLINE static constexpr int size() { return 4; }
-  SIMD_ALWAYS_INLINE constexpr simd_mask(uint32x4_t const& value_in)
+  SIMD_ALWAYS_INLINE inline simd_mask() = default;
+  SIMD_ALWAYS_INLINE inline simd_mask(bool value)
+    :m_value(vdupq_n_s32(-int(value)))
+  {}
+  SIMD_ALWAYS_INLINE inline static constexpr int size() { return 4; }
+  SIMD_ALWAYS_INLINE inline constexpr simd_mask(uint32x4_t const& value_in)
     :m_value(value_in)
   {}
-  SIMD_ALWAYS_INLINE constexpr uint32x4_t get() const { return m_value; }
-  SIMD_ALWAYS_INLINE simd_mask operator||(simd_mask const& other) const {
+  SIMD_ALWAYS_INLINE inline constexpr uint32x4_t get() const { return m_value; }
+  SIMD_ALWAYS_INLINE inline simd_mask operator||(simd_mask const& other) const {
     return simd_mask(vorrq_u32(m_value, other.m_value));
   }
 };
@@ -1059,14 +1062,17 @@ template <>
 class simd_mask<double, simd_abi::neon> {
   uint64x2_t m_value;
  public:
-  SIMD_ALWAYS_INLINE simd_mask() = default;
   using value_type = bool;
-  SIMD_ALWAYS_INLINE static constexpr int size() { return 4; }
-  SIMD_ALWAYS_INLINE constexpr simd_mask(uint64x2_t const& value_in)
+  SIMD_ALWAYS_INLINE inline simd_mask() = default;
+  SIMD_ALWAYS_INLINE inline simd_mask(bool value)
+    :m_value(vdupq_n_s64(-std::int64_t(value)))
+  {}
+  SIMD_ALWAYS_INLINE inline static constexpr int size() { return 4; }
+  SIMD_ALWAYS_INLINE inline constexpr simd_mask(uint64x2_t const& value_in)
     :m_value(value_in)
   {}
-  SIMD_ALWAYS_INLINE constexpr uint64x2_t get() const { return m_value; }
-  SIMD_ALWAYS_INLINE simd_mask operator||(simd_mask const& other) const {
+  SIMD_ALWAYS_INLINE inline constexpr uint64x2_t get() const { return m_value; }
+  SIMD_ALWAYS_INLINE inline simd_mask operator||(simd_mask const& other) const {
     return simd_mask(vorrq_u64(m_value, other.m_value));
   }
 };
