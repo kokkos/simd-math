@@ -412,6 +412,9 @@ class simd_mask<float, simd_abi::sse> {
   SIMD_ALWAYS_INLINE constexpr simd_mask(__m128 const& value_in)
     :m_value(value_in)
   {}
+  SIMD_ALWAYS_INLINE simd_mask(bool value_in)
+    :m_value(value_in ? _mm_cmpeq_ps(_mm_setzero_ps(),_mm_setzero_ps()) : _mm_setzero_ps())
+  {}
   SIMD_ALWAYS_INLINE constexpr __m128 get() const { return m_value; }
   SIMD_ALWAYS_INLINE simd_mask operator||(simd_mask const& other) const {
     return simd_mask(_mm_or_ps(m_value, other.m_value));
@@ -501,6 +504,9 @@ class simd_mask<double, simd_abi::sse> {
   SIMD_ALWAYS_INLINE static constexpr int size() { return 4; }
   SIMD_ALWAYS_INLINE constexpr simd_mask(__m128d const& value_in)
     :m_value(value_in)
+  {}
+  SIMD_ALWAYS_INLINE simd_mask(bool value_in)
+    :m_value(value_in ? _mm_cmpeq_pd(_mm_setzero_pd(),_mm_setzero_pd()) : _mm_setzero_pd())
   {}
   SIMD_ALWAYS_INLINE constexpr __m128d get() const { return m_value; }
   SIMD_ALWAYS_INLINE simd_mask operator||(simd_mask const& other) const {
@@ -598,6 +604,9 @@ class simd_mask<float, simd_abi::avx> {
   SIMD_ALWAYS_INLINE constexpr simd_mask(__m256 const& value_in)
     :m_value(value_in)
   {}
+  SIMD_ALWAYS_INLINE simd_mask(bool value_in)
+    :m_value(value_in ? _mm256_cmp_ps(_mm256_setzero_ps(),_mm256_setzero_ps(),_CMP_EQ_OQ) : _mm256_setzero_ps())
+  {}
   SIMD_ALWAYS_INLINE constexpr __m256 get() const { return m_value; }
   SIMD_ALWAYS_INLINE simd_mask operator||(simd_mask const& other) const {
     return simd_mask(_mm256_or_ps(m_value, other.m_value));
@@ -683,6 +692,9 @@ class simd_mask<double, simd_abi::avx> {
   SIMD_ALWAYS_INLINE static constexpr int size() { return 4; }
   SIMD_ALWAYS_INLINE constexpr simd_mask(__m256d const& value_in)
     :m_value(value_in)
+  {}
+  SIMD_ALWAYS_INLINE simd_mask(bool value_in)
+    :m_value(value_in ? _mm256_cmp_pd(_mm256_setzero_pd(),_mm256_setzero_pd(),_CMP_EQ_OQ) : _mm256_setzero_pd())
   {}
   SIMD_ALWAYS_INLINE constexpr __m256d get() const { return m_value; }
   SIMD_ALWAYS_INLINE simd_mask operator||(simd_mask const& other) const {
@@ -780,6 +792,11 @@ class simd_mask<float, simd_abi::avx512> {
   SIMD_ALWAYS_INLINE constexpr simd_mask(__mmask16 const& value_in)
     :m_value(value_in)
   {}
+  SIMD_ALWAYS_INLINE simd_mask(bool value_in)
+    :m_value(value_in ?
+             _mm512_cmp_ps_mask(_mm512_setzero_ps(),_mm512_setzero_ps(),_CMP_EQ_OQ) :
+             _mm512_cmp_ps_mask(_mm512_setzero_ps(),_mm512_setzero_ps(),_CMP_LT_OS) )
+  {}
   SIMD_ALWAYS_INLINE constexpr __mmask16 get() const { return m_value; }
   SIMD_ALWAYS_INLINE simd_mask operator||(simd_mask const& other) const {
     return simd_mask(_kor_mask16(m_value, other.m_value));
@@ -860,6 +877,11 @@ class simd_mask<double, simd_abi::avx512> {
   SIMD_ALWAYS_INLINE static constexpr int size() { return 8; }
   SIMD_ALWAYS_INLINE constexpr simd_mask(__mmask8 const& value_in)
     :m_value(value_in)
+  {}
+  SIMD_ALWAYS_INLINE simd_mask(bool value_in)
+    :m_value(value_in ?
+             _mm512_cmp_pd_mask(_mm512_setzero_pd(),_mm512_setzero_pd(),_CMP_EQ_OQ) :
+             _mm512_cmp_pd_mask(_mm512_setzero_pd(),_mm512_setzero_pd(),_CMP_LT_OQ) )
   {}
   SIMD_ALWAYS_INLINE constexpr __mmask8 get() const { return m_value; }
   SIMD_ALWAYS_INLINE simd_mask operator||(simd_mask const& other) const {
