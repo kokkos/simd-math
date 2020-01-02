@@ -71,7 +71,7 @@ class element_aligned_tag {};
 
 #ifndef SIMD_SCALAR_CHOOSE_DEFINED
 template <class T>
-HPC_ALWAYS_INLINE HPC_HOST_DEVICE constexpr T const&
+SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE constexpr T const&
 choose(bool a, T const& b, T const& c) {
   return a ? b : c;
 }
