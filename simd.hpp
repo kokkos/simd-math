@@ -50,6 +50,8 @@
 #define SIMD_PRAGMA _Pragma("clang loop vectorize(enable)")
 #elif defined(__GNUC__)
 #define SIMD_PRAGMA _Pragma("GCC ivdep")
+#else
+#define SIMD_PRAGMA
 #endif
 #endif
 
@@ -282,23 +284,20 @@ SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::scalar> choose(
   return simd<T, simd_abi::scalar>(choose(a.get(), b.get(), c.get()));
 }
 
-#ifdef SIMD_PRAGMA
-
 namespace simd_abi {
 
-template <std::size_t NBytes>
-class directive;
+template <int N>
+class pack;
 
 }
 
-template <std::size_t NBytes>
-class simd_mask<float, simd_abi::directive<NBytes>> {
-  static_assert(NBytes % sizeof(float) == 0, "bytes not a multiple of sizeof(float)");
-  int m_value[NBytes / sizeof(float)];
+template <int N>
+class simd_mask<float, simd_abi::pack<N>> {
+  int m_value[N];
  public:
   using value_type = bool;
   SIMD_ALWAYS_INLINE inline simd_mask() = default;
-  SIMD_ALWAYS_INLINE inline static constexpr int size() { return NBytes / sizeof(float); }
+  SIMD_ALWAYS_INLINE inline static constexpr int size() { return N; }
   SIMD_ALWAYS_INLINE inline simd_mask(bool value) {
     SIMD_PRAGMA for (int i = 0; i < size(); ++i) m_value[i] = value;
   }
@@ -311,14 +310,13 @@ class simd_mask<float, simd_abi::directive<NBytes>> {
   }
 };
 
-template <std::size_t NBytes>
-class simd_mask<double, simd_abi::directive<NBytes>> {
-  static_assert(NBytes % sizeof(double) == 0, "bytes not a multiple of sizeof(double)");
-  long long m_value[NBytes / sizeof(double)];
+template <int N>
+class simd_mask<double, simd_abi::pack<N>> {
+  long long m_value[N];
  public:
   using value_type = bool;
   SIMD_ALWAYS_INLINE inline simd_mask() = default;
-  SIMD_ALWAYS_INLINE inline static constexpr int size() { return NBytes / sizeof(double); }
+  SIMD_ALWAYS_INLINE inline static constexpr int size() { return N; }
   SIMD_ALWAYS_INLINE inline simd_mask(bool value) {
     SIMD_PRAGMA for (int i = 0; i < size(); ++i) m_value[i] = value;
   }
@@ -331,21 +329,20 @@ class simd_mask<double, simd_abi::directive<NBytes>> {
   }
 };
 
-template <class T, std::size_t NBytes>
-SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline bool all_of(simd_mask<T, simd_abi::scalar> const& a) {
+template <class T, int N>
+SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline bool all_of(simd_mask<T, simd_abi::pack<N>> const& a) {
   bool result = true;
   SIMD_PRAGMA for (int i = 0; i < a.size(); ++i) result = result || a[i];
   return a.get();
 }
 
-template <class T, std::size_t NBytes>
-class simd<T, simd_abi::directive<NBytes>> {
-  static_assert(NBytes % sizeof(T) == 0, "bytes not a multiple of sizeof(T)");
-  T m_value[NBytes / sizeof(T)];
+template <class T, int N>
+class simd<T, simd_abi::pack<N>> {
+  T m_value[N];
  public:
   SIMD_ALWAYS_INLINE simd() = default;
   using value_type = T;
-  SIMD_ALWAYS_INLINE static constexpr int size() { return NBytes / sizeof(T); }
+  SIMD_ALWAYS_INLINE static constexpr int size() { return N; }
   SIMD_ALWAYS_INLINE simd(T value)
   {
     SIMD_PRAGMA for (int i = 0; i < size(); ++i) m_value[i] = value;
@@ -387,57 +384,57 @@ class simd<T, simd_abi::directive<NBytes>> {
   }
   SIMD_ALWAYS_INLINE constexpr T operator[](int i) const { return m_value[i]; }
   SIMD_ALWAYS_INLINE T& operator[](int i) { return m_value[i]; }
-  SIMD_ALWAYS_INLINE simd_mask<T, simd_abi::directive<NBytes>> operator<(simd const& other) const {
-    simd_mask<T, simd_abi::directive<NBytes>> result;
+  SIMD_ALWAYS_INLINE simd_mask<T, simd_abi::pack<N>> operator<(simd const& other) const {
+    simd_mask<T, simd_abi::pack<N>> result;
     SIMD_PRAGMA for (int i = 0; i < size(); ++i) result[i] = m_value[i] < other.m_value[i];
     return result;
   }
-  SIMD_ALWAYS_INLINE simd_mask<T, simd_abi::directive<NBytes>> operator==(simd const& other) const {
-    simd_mask<T, simd_abi::directive<NBytes>> result;
+  SIMD_ALWAYS_INLINE simd_mask<T, simd_abi::pack<N>> operator==(simd const& other) const {
+    simd_mask<T, simd_abi::pack<N>> result;
     SIMD_PRAGMA for (int i = 0; i < size(); ++i) result[i] = m_value[i] == other.m_value[i];
     return result;
   }
 };
 
-template <class T, std::size_t NBytes>
-SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::directive<NBytes>> sqrt(simd<T, simd_abi::directive<NBytes>> const& a) {
-  simd<T, simd_abi::directive<NBytes>> result;
+template <class T, std::size_t N>
+SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::pack<N>> sqrt(simd<T, simd_abi::pack<N>> const& a) {
+  simd<T, simd_abi::pack<N>> result;
   using std::sqrt;
   SIMD_PRAGMA for (int i = 0; i < a.size(); ++i) result[i] = sqrt(a[i]);
   return result;
 }
 
-template <class T, std::size_t NBytes>
-SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::directive<NBytes>> cbrt(simd<T, simd_abi::directive<NBytes>> const& a) {
-  simd<T, simd_abi::directive<NBytes>> result;
+template <class T, int N>
+SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::pack<N>> cbrt(simd<T, simd_abi::pack<N>> const& a) {
+  simd<T, simd_abi::pack<N>> result;
   using std::cbrt;
   SIMD_PRAGMA for (int i = 0; i < a.size(); ++i) result[i] = cbrt(a[i]);
   return result;
 }
 
-template <class T, std::size_t NBytes>
-SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::directive<NBytes>> exp(simd<T, simd_abi::directive<NBytes>> const& a) {
-  simd<T, simd_abi::directive<NBytes>> result;
+template <class T, int N>
+SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::pack<N>> exp(simd<T, simd_abi::pack<N>> const& a) {
+  simd<T, simd_abi::pack<N>> result;
   using std::exp;
   SIMD_PRAGMA for (int i = 0; i < a.size(); ++i) result[i] = exp(a[i]);
   return result;
 }
 
-template <class T, std::size_t NBytes>
-SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::directive<NBytes>> fma(
-    simd<T, simd_abi::directive<NBytes>> const& a,
-    simd<T, simd_abi::directive<NBytes>> const& b,
-    simd<T, simd_abi::directive<NBytes>> const& c) {
-  simd<T, simd_abi::directive<NBytes>> result;
+template <class T, int N>
+SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::pack<N>> fma(
+    simd<T, simd_abi::pack<N>> const& a,
+    simd<T, simd_abi::pack<N>> const& b,
+    simd<T, simd_abi::pack<N>> const& c) {
+  simd<T, simd_abi::pack<N>> result;
   using std::exp;
   SIMD_PRAGMA for (int i = 0; i < a.size(); ++i) result[i] = (a[i] * b[i]) + c[i];
   return result;
 }
 
-template <class T, std::size_t NBytes>
-SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::directive<NBytes>> max(
-    simd<T, simd_abi::directive<NBytes>> const& a, simd<T, simd_abi::directive<NBytes>> const& b) {
-  simd<T, simd_abi::directive<NBytes>> result;
+template <class T, int N>
+SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::pack<N>> max(
+    simd<T, simd_abi::pack<N>> const& a, simd<T, simd_abi::pack<N>> const& b) {
+  simd<T, simd_abi::pack<N>> result;
   SIMD_PRAGMA
   for (int i = 0; i < a.size(); ++i) {
     result[i] = choose((a[i] < b[i]), b[i], a[i]);
@@ -445,10 +442,10 @@ SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::directive<NBytes>> 
   return result;
 }
 
-template <class T, std::size_t NBytes>
-SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::directive<NBytes>> min(
-    simd<T, simd_abi::directive<NBytes>> const& a, simd<T, simd_abi::directive<NBytes>> const& b) {
-  simd<T, simd_abi::directive<NBytes>> result;
+template <class T, int N>
+SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::pack<N>> min(
+    simd<T, simd_abi::pack<N>> const& a, simd<T, simd_abi::pack<N>> const& b) {
+  simd<T, simd_abi::pack<N>> result;
   SIMD_PRAGMA
   for (int i = 0; i < a.size(); ++i) {
     result[i] = choose((b[i] < a[i]), b[i], a[i]);
@@ -456,15 +453,13 @@ SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::directive<NBytes>> 
   return result;
 }
 
-template <class T, std::size_t NBytes>
-SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::directive<NBytes>> choose(
-    simd_mask<T, simd_abi::directive<NBytes>> const& a, simd<T, simd_abi::directive<NBytes>> const& b, simd<T, simd_abi::directive<NBytes>> const& c) {
-  simd<T, simd_abi::directive<NBytes>> result;
+template <class T, int N>
+SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::pack<N>> choose(
+    simd_mask<T, simd_abi::pack<N>> const& a, simd<T, simd_abi::pack<N>> const& b, simd<T, simd_abi::pack<N>> const& c) {
+  simd<T, simd_abi::pack<N>> result;
   SIMD_PRAGMA for (int i = 0; i < a.size(); ++i) result[i] = a[i] ? b[i] : c[i];
   return result;
 }
-
-#endif
 
 /* Intel SVML disclaimer: cbrt, exp, etc. are not intrinsics, they are Intel-proprietary library functions
   https://stackoverflow.com/questions/36636159/where-is-clangs-mm256-pow-ps-intrinsic
@@ -1568,10 +1563,8 @@ using native = sse;
 using native = neon;
 #elif defined(__VSX__)
 using native = vsx;
-#elif defined(SIMD_PRAGMA)
-using native = directive<256 / 8>;
 #else
-using native = scalar;
+using native = pack<16>;
 #endif
 
 }
