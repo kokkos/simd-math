@@ -36,7 +36,9 @@
 
 #include <cmath>
 
-#define SIMD_ALWAYS_INLINE [[gnu::always_inline]]
+//#define SIMD_ALWAYS_INLINE [[gnu::always_inline]]
+// DI-QUESTION: always-inline gives several errors for gcc 7.2.0 linux build?
+#define SIMD_ALWAYS_INLINE
 
 #ifdef __CUDACC__
 #define SIMD_HOST_DEVICE __host__ __device__
@@ -296,7 +298,7 @@ class simd<T, simd_abi::directive<NBytes>> {
     SIMD_PRAGMA for (int i = 0; i < size(); ++i) ptr[i] = m_value[i];
   }
   SIMD_ALWAYS_INLINE constexpr T operator[](int i) const noexcept { return m_value[i]; }
-  SIMD_ALWAYS_INLINE constexpr T& operator[](int i) noexcept { return m_value[i]; }
+  SIMD_ALWAYS_INLINE T& operator[](int i) noexcept { return m_value[i]; }
   SIMD_ALWAYS_INLINE simd_mask<T, simd_abi::directive<NBytes>> operator<(simd const& other) const noexcept {
     simd_mask<T, simd_abi::directive<NBytes>> result;
     SIMD_PRAGMA for (int i = 0; i < size(); ++i) result[i] = m_value[i] < other.m_value[i];
@@ -355,6 +357,9 @@ class simd_mask<float, simd_abi::sse> {
   SIMD_ALWAYS_INLINE simd_mask() noexcept = default;
   using value_type = bool;
   SIMD_ALWAYS_INLINE static constexpr int size() noexcept { return 4; }
+  SIMD_ALWAYS_INLINE simd_mask(bool value_in) noexcept
+    :m_value(value_in ? _mm_cmpeq_ps(_mm_setzero_ps(),_mm_setzero_ps()) : _mm_setzero_ps())
+  {}
   SIMD_ALWAYS_INLINE constexpr simd_mask(__m128 const& value_in) noexcept
     :m_value(value_in)
   {}
@@ -432,6 +437,9 @@ class simd_mask<double, simd_abi::sse> {
   SIMD_ALWAYS_INLINE simd_mask() noexcept = default;
   using value_type = bool;
   SIMD_ALWAYS_INLINE static constexpr int size() noexcept { return 4; }
+  SIMD_ALWAYS_INLINE simd_mask(bool value_in) noexcept
+    :m_value(value_in ? _mm_cmpeq_pd(_mm_setzero_pd(),_mm_setzero_pd()) : _mm_setzero_pd())
+  {}
   SIMD_ALWAYS_INLINE constexpr simd_mask(__m128d const& value_in) noexcept
     :m_value(value_in)
   {}
@@ -515,6 +523,9 @@ class simd_mask<float, simd_abi::avx> {
   SIMD_ALWAYS_INLINE simd_mask() noexcept = default;
   using value_type = bool;
   SIMD_ALWAYS_INLINE static constexpr int size() noexcept { return 8; }
+  SIMD_ALWAYS_INLINE simd_mask(bool value_in) noexcept
+    :m_value(value_in ? _mm256_cmp_ps(_mm256_setzero_ps(),_mm256_setzero_ps(),_CMP_EQ_OQ) : _mm256_setzero_ps())
+  {}
   SIMD_ALWAYS_INLINE constexpr simd_mask(__m256 const& value_in) noexcept
     :m_value(value_in)
   {}
@@ -588,6 +599,9 @@ class simd_mask<double, simd_abi::avx> {
   SIMD_ALWAYS_INLINE simd_mask() noexcept = default;
   using value_type = bool;
   SIMD_ALWAYS_INLINE static constexpr int size() noexcept { return 4; }
+  SIMD_ALWAYS_INLINE simd_mask(bool value_in) noexcept
+    :m_value(value_in ? _mm256_cmp_pd(_mm256_setzero_pd(),_mm256_setzero_pd(),_CMP_EQ_OQ) : _mm256_setzero_pd())
+  {}
   SIMD_ALWAYS_INLINE constexpr simd_mask(__m256d const& value_in) noexcept
     :m_value(value_in)
   {}
