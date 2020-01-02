@@ -139,6 +139,24 @@ SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, Abi> operator/(simd<T, Abi> c
   return a / simd<T, Abi>(b);
 }
 
+template <class T, class Abi>
+SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, Abi> cbrt(simd<T, Abi> a) {
+  T tmp[simd<T, Abi>::size()];
+  a.copy_to(tmp, element_aligned_tag());
+  for (int i = 0; i < simd<T, Abi>::size(); ++i) tmp[i] = std::cbrt(tmp[i]);
+  a.copy_from(tmp, element_aligned_tag());
+  return a;
+}
+
+template <class T, class Abi>
+SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, Abi> exp(simd<T, Abi> a) {
+  T tmp[simd<T, Abi>::size()];
+  a.copy_to(tmp, element_aligned_tag());
+  for (int i = 0; i < simd<T, Abi>::size(); ++i) tmp[i] = std::exp(tmp[i]);
+  a.copy_from(tmp, element_aligned_tag());
+  return a;
+}
+
 SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline bool all_of(bool a) { return a; }
 
 namespace simd_abi {
