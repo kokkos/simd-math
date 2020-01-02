@@ -975,7 +975,7 @@ class simd_mask<float, simd_abi::neon> {
   using value_type = bool;
   SIMD_ALWAYS_INLINE inline simd_mask() = default;
   SIMD_ALWAYS_INLINE inline simd_mask(bool value)
-    :m_value(vdupq_n_s32(-int(value)))
+    :m_value(vreinterpretq_u32_s32(vdupq_n_s32(-int(value))))
   {}
   SIMD_ALWAYS_INLINE inline static constexpr int size() { return 4; }
   SIMD_ALWAYS_INLINE inline constexpr simd_mask(uint32x4_t const& value_in)
@@ -1065,7 +1065,7 @@ class simd_mask<double, simd_abi::neon> {
   using value_type = bool;
   SIMD_ALWAYS_INLINE inline simd_mask() = default;
   SIMD_ALWAYS_INLINE inline simd_mask(bool value)
-    :m_value(vdupq_n_s64(-std::int64_t(value)))
+    :m_value(vreinterpretq_u64_s64(vdupq_n_s64(-std::int64_t(value))))
   {}
   SIMD_ALWAYS_INLINE inline static constexpr int size() { return 4; }
   SIMD_ALWAYS_INLINE inline constexpr simd_mask(uint64x2_t const& value_in)
