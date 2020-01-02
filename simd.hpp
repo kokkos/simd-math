@@ -158,7 +158,7 @@ SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, Abi> exp(simd<T, Abi> a) {
 }
 
 template <class T, class Abi>
-SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, Abi> fmadd(simd<T, Abi> a, simd<T, Abi> const& b, simd<T, Abi> const& c) {
+SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, Abi> fma(simd<T, Abi> a, simd<T, Abi> const& b, simd<T, Abi> const& c) {
   T stack_a[simd<T, Abi>::size()];
   T stack_b[simd<T, Abi>::size()];
   a.copy_to(stack_a, element_aligned_tag());
@@ -257,7 +257,7 @@ SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::scalar> exp(simd<T,
 }
 
 template <class T>
-SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::scalar> fmadd(
+SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::scalar> fma(
     simd<T, simd_abi::scalar> const& a,
     simd<T, simd_abi::scalar> const& b,
     simd<T, simd_abi::scalar> const& c) {
@@ -424,7 +424,7 @@ SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::directive<NBytes>> 
 }
 
 template <class T, std::size_t NBytes>
-SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::directive<NBytes>> fmadd(
+SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::directive<NBytes>> fma(
     simd<T, simd_abi::directive<NBytes>> const& a,
     simd<T, simd_abi::directive<NBytes>> const& b,
     simd<T, simd_abi::directive<NBytes>> const& c) {
@@ -569,7 +569,7 @@ SIMD_ALWAYS_INLINE inline simd<float, simd_abi::sse> exp(simd<float, simd_abi::s
 #endif
 
 #if defined(__FMA__) || defined(__AVX2__)
-SIMD_ALWAYS_INLINE inline simd<float, simd_abi::sse> fmadd(
+SIMD_ALWAYS_INLINE inline simd<float, simd_abi::sse> fma(
     simd<float, simd_abi::sse> const& a,
     simd<float, simd_abi::sse> const& b,
     simd<float, simd_abi::sse> const& c) {
@@ -681,7 +681,7 @@ SIMD_ALWAYS_INLINE inline simd<double, simd_abi::sse> exp(simd<double, simd_abi:
 #endif
 
 #if defined(__FMA__) || defined(__AVX2__)
-SIMD_ALWAYS_INLINE inline simd<double, simd_abi::sse> fmadd(
+SIMD_ALWAYS_INLINE inline simd<double, simd_abi::sse> fma(
     simd<double, simd_abi::sse> const& a,
     simd<double, simd_abi::sse> const& b,
     simd<double, simd_abi::sse> const& c) {
@@ -804,7 +804,7 @@ SIMD_ALWAYS_INLINE inline simd<float, simd_abi::avx> exp(simd<float, simd_abi::a
 #endif
 
 #if defined(__FMA__) || defined(__AVX2__)
-SIMD_ALWAYS_INLINE inline simd<float, simd_abi::avx> fmadd(
+SIMD_ALWAYS_INLINE inline simd<float, simd_abi::avx> fma(
     simd<float, simd_abi::avx> const& a,
     simd<float, simd_abi::avx> const& b,
     simd<float, simd_abi::avx> const& c) {
@@ -917,7 +917,7 @@ SIMD_ALWAYS_INLINE inline simd<double, simd_abi::avx> exp(simd<double, simd_abi:
 #endif
 
 #if defined(__FMA__) || defined(__AVX2__)
-SIMD_ALWAYS_INLINE inline simd<double, simd_abi::avx> fmadd(
+SIMD_ALWAYS_INLINE inline simd<double, simd_abi::avx> fma(
     simd<double, simd_abi::avx> const& a,
     simd<double, simd_abi::avx> const& b,
     simd<double, simd_abi::avx> const& c) {
@@ -1030,7 +1030,7 @@ SIMD_ALWAYS_INLINE inline simd<float, simd_abi::avx512> exp(simd<float, simd_abi
 }
 #endif
 
-SIMD_ALWAYS_INLINE inline simd<float, simd_abi::avx512> fmadd(
+SIMD_ALWAYS_INLINE inline simd<float, simd_abi::avx512> fma(
     simd<float, simd_abi::avx512> const& a,
     simd<float, simd_abi::avx512> const& b,
     simd<float, simd_abi::avx512> const& c) {
@@ -1132,7 +1132,7 @@ SIMD_ALWAYS_INLINE inline simd<double, simd_abi::avx512> exp(simd<double, simd_a
 }
 #endif
 
-SIMD_ALWAYS_INLINE inline simd<double, simd_abi::avx512> fmadd(
+SIMD_ALWAYS_INLINE inline simd<double, simd_abi::avx512> fma(
     simd<double, simd_abi::avx512> const& a,
     simd<double, simd_abi::avx512> const& b,
     simd<double, simd_abi::avx512> const& c) {
@@ -1234,7 +1234,7 @@ SIMD_ALWAYS_INLINE inline simd<float, simd_abi::neon> sqrt(simd<float, simd_abi:
   return simd<float, simd_abi::neon>(vsqrtq_f32(a.get()));
 }
 
-SIMD_ALWAYS_INLINE inline simd<float, simd_abi::neon> fmadd(
+SIMD_ALWAYS_INLINE inline simd<float, simd_abi::neon> fma(
     simd<float, simd_abi::neon> const& a,
     simd<float, simd_abi::neon> const& b,
     simd<float, simd_abi::neon> const& c) {
@@ -1331,7 +1331,7 @@ SIMD_ALWAYS_INLINE inline simd<double, simd_abi::neon> sqrt(simd<double, simd_ab
   return simd<double, simd_abi::neon>(vsqrtq_f64(a.get()));
 }
 
-SIMD_ALWAYS_INLINE inline simd<double, simd_abi::neon> fmadd(
+SIMD_ALWAYS_INLINE inline simd<double, simd_abi::neon> fma(
     simd<double, simd_abi::neon> const& a,
     simd<double, simd_abi::neon> const& b,
     simd<double, simd_abi::neon> const& c) {
