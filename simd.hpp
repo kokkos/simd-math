@@ -1162,14 +1162,17 @@ template <>
 class simd_mask<float, simd_abi::vsx> {
   __vector __bool int m_value;
  public:
-  SIMD_ALWAYS_INLINE simd_mask() = default;
   using value_type = bool;
-  SIMD_ALWAYS_INLINE static constexpr int size() { return 4; }
-  SIMD_ALWAYS_INLINE constexpr simd_mask(__vector __bool int const& value_in)
+  SIMD_ALWAYS_INLINE inline simd_mask() = default;
+  SIMD_ALWAYS_INLINE inline simd_mask(bool value)
+    :m_value{value, value, value, value}
+  {}
+  SIMD_ALWAYS_INLINE inline static constexpr int size() { return 4; }
+  SIMD_ALWAYS_INLINE inline constexpr simd_mask(__vector __bool int const& value_in)
     :m_value(value_in)
   {}
-  SIMD_ALWAYS_INLINE constexpr __vector __bool int get() const { return m_value; }
-  SIMD_ALWAYS_INLINE simd_mask operator||(simd_mask const& other) const {
+  SIMD_ALWAYS_INLINE inline constexpr __vector __bool int get() const { return m_value; }
+  SIMD_ALWAYS_INLINE inline simd_mask operator||(simd_mask const& other) const {
     return simd_mask(vec_or(m_value, other.m_value));
   }
 };
@@ -1178,17 +1181,17 @@ template <>
 class simd<float, simd_abi::vsx> {
   __vector float m_value;
  public:
-  SIMD_ALWAYS_INLINE simd() = default;
   using value_type = float;
-  SIMD_ALWAYS_INLINE static constexpr int size() { return 4; }
-  SIMD_ALWAYS_INLINE simd(float value)
+  SIMD_ALWAYS_INLINE inline simd() = default;
+  SIMD_ALWAYS_INLINE inline static constexpr int size() { return 4; }
+  SIMD_ALWAYS_INLINE inline simd(float value)
     :m_value(vec_splats(value))
   {}
   template <class Flags>
-  SIMD_ALWAYS_INLINE simd(float const* ptr, Flags flags) {
+  SIMD_ALWAYS_INLINE inline simd(float const* ptr, Flags flags) {
     copy_from(ptr, flags);
   }
-  SIMD_ALWAYS_INLINE constexpr simd(__vector float const& value_in)
+  SIMD_ALWAYS_INLINE inline constexpr simd(__vector float const& value_in)
     :m_value(value_in)
   {}
   SIMD_ALWAYS_INLINE simd operator*(simd const& other) const {
@@ -1204,7 +1207,8 @@ class simd<float, simd_abi::vsx> {
     return simd(vec_sub(m_value, other.m_value));
   }
   SIMD_ALWAYS_INLINE simd operator-() const {
-    return simd(vec_neg(m_value));
+    // return simd(vec_neg(m_value)); some GCC versions dont have this
+    return simd(0.0) - (*this);
   }
   SIMD_ALWAYS_INLINE void copy_from(float const* ptr, element_aligned_tag) {
     m_value = vec_vsx_ld(0, ptr);
@@ -1244,14 +1248,17 @@ template <>
 class simd_mask<double, simd_abi::vsx> {
   __vector __bool long long m_value;
  public:
-  SIMD_ALWAYS_INLINE simd_mask() = default;
   using value_type = bool;
-  SIMD_ALWAYS_INLINE static constexpr int size() { return 2; }
-  SIMD_ALWAYS_INLINE constexpr simd_mask(__vector __bool long long const& value_in)
+  SIMD_ALWAYS_INLINE inline simd_mask() = default;
+  SIMD_ALWAYS_INLINE inline simd_mask(bool value)
+    :m_value{value, value}
+  {}
+  SIMD_ALWAYS_INLINE inline static constexpr int size() { return 2; }
+  SIMD_ALWAYS_INLINE inline constexpr simd_mask(__vector __bool long long const& value_in)
     :m_value(value_in)
   {}
-  SIMD_ALWAYS_INLINE constexpr __vector __bool long long get() const { return m_value; }
-  SIMD_ALWAYS_INLINE simd_mask operator||(simd_mask const& other) const {
+  SIMD_ALWAYS_INLINE inline constexpr __vector __bool long long get() const { return m_value; }
+  SIMD_ALWAYS_INLINE inline simd_mask operator||(simd_mask const& other) const {
     return simd_mask(vec_or(m_value, other.m_value));
   }
 };
@@ -1286,7 +1293,8 @@ class simd<double, simd_abi::vsx> {
     return simd(vec_sub(m_value, other.m_value));
   }
   SIMD_ALWAYS_INLINE simd operator-() const {
-    return simd(vec_neg(m_value));
+    // return simd(vec_neg(m_value)); some GCC versions dont have this
+    return simd(0.0) - (*this);
   }
   SIMD_ALWAYS_INLINE void copy_from(double const* ptr, element_aligned_tag) {
     m_value = vec_vsx_ld(0, ptr);
