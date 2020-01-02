@@ -12,9 +12,6 @@
 #include <immintrin.h>
 #endif
 
-#ifdef __AVX2__
-#endif
-
 #ifdef __AVX512F__
 #include <immintrin.h>
 #endif
@@ -32,6 +29,7 @@
 #endif
 
 #include <cmath>
+#include <cstdint>
 
 #ifndef SIMD_ALWAYS_INLINE
 #define SIMD_ALWAYS_INLINE [[gnu::always_inline]]
@@ -153,8 +151,8 @@ template <class T>
 class simd_mask<T, simd_abi::scalar> {
   bool m_value;
  public:
-  SIMD_ALWAYS_INLINE inline simd_mask() = default;
   using value_type = bool;
+  SIMD_ALWAYS_INLINE inline simd_mask() = default;
   SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE static constexpr int size() { return 1; }
   SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd_mask(bool value)
     :m_value(value)
@@ -249,16 +247,15 @@ class simd_mask<float, simd_abi::directive<NBytes>> {
   static_assert(NBytes % sizeof(float) == 0, "bytes not a multiple of sizeof(float)");
   int m_value[NBytes / sizeof(float)];
  public:
-  SIMD_ALWAYS_INLINE simd_mask() = default;
   using value_type = bool;
-  SIMD_ALWAYS_INLINE static constexpr int size() { return NBytes / sizeof(float); }
-  SIMD_ALWAYS_INLINE simd_mask(bool value)
-  {
+  SIMD_ALWAYS_INLINE inline simd_mask() = default;
+  SIMD_ALWAYS_INLINE inline static constexpr int size() { return NBytes / sizeof(float); }
+  SIMD_ALWAYS_INLINE inline simd_mask(bool value) {
     SIMD_PRAGMA for (int i = 0; i < size(); ++i) m_value[i] = value;
   }
-  SIMD_ALWAYS_INLINE constexpr bool operator[](int i) const { return m_value[i]; }
-  SIMD_ALWAYS_INLINE int& operator[](int i) { return m_value[i]; }
-  SIMD_ALWAYS_INLINE simd_mask operator||(simd_mask const& other) const {
+  SIMD_ALWAYS_INLINE inline constexpr bool operator[](int i) const { return m_value[i]; }
+  SIMD_ALWAYS_INLINE inline int& operator[](int i) { return m_value[i]; }
+  SIMD_ALWAYS_INLINE inline simd_mask operator||(simd_mask const& other) const {
     simd_mask result;
     SIMD_PRAGMA for (int i = 0; i < size(); ++i) result.m_value[i] = m_value[i] || other.m_value[i];
     return result;
@@ -270,16 +267,15 @@ class simd_mask<double, simd_abi::directive<NBytes>> {
   static_assert(NBytes % sizeof(double) == 0, "bytes not a multiple of sizeof(double)");
   long long m_value[NBytes / sizeof(double)];
  public:
-  SIMD_ALWAYS_INLINE simd_mask() = default;
   using value_type = bool;
-  SIMD_ALWAYS_INLINE static constexpr int size() { return NBytes / sizeof(double); }
-  SIMD_ALWAYS_INLINE simd_mask(bool value)
-  {
+  SIMD_ALWAYS_INLINE inline simd_mask() = default;
+  SIMD_ALWAYS_INLINE inline static constexpr int size() { return NBytes / sizeof(double); }
+  SIMD_ALWAYS_INLINE inline simd_mask(bool value) {
     SIMD_PRAGMA for (int i = 0; i < size(); ++i) m_value[i] = value;
   }
-  SIMD_ALWAYS_INLINE constexpr bool operator[](int i) const { return m_value[i]; }
-  SIMD_ALWAYS_INLINE long long& operator[](int i) { return m_value[i]; }
-  SIMD_ALWAYS_INLINE simd_mask operator||(simd_mask const& other) const {
+  SIMD_ALWAYS_INLINE inline constexpr bool operator[](int i) const { return m_value[i]; }
+  SIMD_ALWAYS_INLINE inline long long& operator[](int i) { return m_value[i]; }
+  SIMD_ALWAYS_INLINE inline simd_mask operator||(simd_mask const& other) const {
     simd_mask result;
     SIMD_PRAGMA for (int i = 0; i < size(); ++i) result.m_value[i] = m_value[i] || other.m_value[i];
     return result;
@@ -406,10 +402,13 @@ template <>
 class simd_mask<float, simd_abi::sse> {
   __m128 m_value;
  public:
-  SIMD_ALWAYS_INLINE simd_mask() = default;
   using value_type = bool;
-  SIMD_ALWAYS_INLINE static constexpr int size() { return 4; }
-  SIMD_ALWAYS_INLINE constexpr simd_mask(__m128 const& value_in)
+  SIMD_ALWAYS_INLINE inline simd_mask() = default;
+  SIMD_ALWAYS_INLINE inline simd_mask(bool value)
+    :m_value(_mm_castsi128_ps(_mm_set1_epi32(-int(value))))
+  {}
+  SIMD_ALWAYS_INLINE inline static constexpr int size() { return 4; }
+  SIMD_ALWAYS_INLINE inline constexpr simd_mask(__m128 const& value_in)
     :m_value(value_in)
   {}
   SIMD_ALWAYS_INLINE constexpr __m128 get() const { return m_value; }
@@ -426,10 +425,10 @@ template <>
 class simd<float, simd_abi::sse> {
   __m128 m_value;
  public:
-  SIMD_ALWAYS_INLINE simd() = default;
   using value_type = float;
-  SIMD_ALWAYS_INLINE static constexpr int size() { return 4; }
-  SIMD_ALWAYS_INLINE simd(float value)
+  SIMD_ALWAYS_INLINE inline simd() = default;
+  SIMD_ALWAYS_INLINE inline static constexpr int size() { return 4; }
+  SIMD_ALWAYS_INLINE inline simd(float value)
     :m_value(_mm_set1_ps(value))
   {}
   template <class Flags>
@@ -496,14 +495,17 @@ template <>
 class simd_mask<double, simd_abi::sse> {
   __m128d m_value;
  public:
-  SIMD_ALWAYS_INLINE simd_mask() = default;
   using value_type = bool;
-  SIMD_ALWAYS_INLINE static constexpr int size() { return 4; }
-  SIMD_ALWAYS_INLINE constexpr simd_mask(__m128d const& value_in)
+  SIMD_ALWAYS_INLINE inline simd_mask() = default;
+  SIMD_ALWAYS_INLINE inline simd_mask(bool value)
+    :m_value(_mm_castsi128_pd(_mm_set1_epi64x(-std::int64_t(value))))
+  {}
+  SIMD_ALWAYS_INLINE inline static constexpr int size() { return 4; }
+  SIMD_ALWAYS_INLINE inline constexpr simd_mask(__m128d const& value_in)
     :m_value(value_in)
   {}
-  SIMD_ALWAYS_INLINE constexpr __m128d get() const { return m_value; }
-  SIMD_ALWAYS_INLINE simd_mask operator||(simd_mask const& other) const {
+  SIMD_ALWAYS_INLINE inline constexpr __m128d get() const { return m_value; }
+  SIMD_ALWAYS_INLINE inline simd_mask operator||(simd_mask const& other) const {
     return simd_mask(_mm_or_pd(m_value, other.m_value));
   }
 };
@@ -592,13 +594,21 @@ template <>
 class simd_mask<float, simd_abi::avx> {
   __m256 m_value;
  public:
-  SIMD_ALWAYS_INLINE simd_mask() = default;
   using value_type = bool;
-  SIMD_ALWAYS_INLINE static constexpr int size() { return 8; }
-  SIMD_ALWAYS_INLINE constexpr simd_mask(__m256 const& value_in)
+  SIMD_ALWAYS_INLINE inline simd_mask() = default;
+  SIMD_ALWAYS_INLINE inline simd_mask(bool value) {
+#ifdef __AVX2__
+    m_value = _mm256_castsi256_ps(_mm256_set1_epi32(-int(value)));
+#else
+    __m128 const b1 = _mm_castsi128_ps(_mm_set1_epi32(-int(value)));
+    m_value = _mm256_set_m128(b1, b1);
+#endif
+  }
+  SIMD_ALWAYS_INLINE inline static constexpr int size() { return 8; }
+  SIMD_ALWAYS_INLINE inline constexpr simd_mask(__m256 const& value_in)
     :m_value(value_in)
   {}
-  SIMD_ALWAYS_INLINE constexpr __m256 get() const { return m_value; }
+  SIMD_ALWAYS_INLINE inline constexpr __m256 get() const { return m_value; }
   SIMD_ALWAYS_INLINE simd_mask operator||(simd_mask const& other) const {
     return simd_mask(_mm256_or_ps(m_value, other.m_value));
   }
@@ -678,14 +688,22 @@ template <>
 class simd_mask<double, simd_abi::avx> {
   __m256d m_value;
  public:
-  SIMD_ALWAYS_INLINE simd_mask() = default;
   using value_type = bool;
-  SIMD_ALWAYS_INLINE static constexpr int size() { return 4; }
-  SIMD_ALWAYS_INLINE constexpr simd_mask(__m256d const& value_in)
+  SIMD_ALWAYS_INLINE inline simd_mask() = default;
+  SIMD_ALWAYS_INLINE inline simd_mask(bool value) {
+#ifdef __AVX2__
+    m_value = _mm256_castsi256_pd(_mm256_set1_epi64x(-std::int64_t(value)));
+#else
+    __m128 const b1 = _mm_castsi128_ps(_mm_set1_epi32(-int(value)));
+    m_value = _mm256_castps_pd(set_m128r(b1, b1));
+#endif
+  }
+  SIMD_ALWAYS_INLINE inline static constexpr int size() { return 4; }
+  SIMD_ALWAYS_INLINE inline constexpr simd_mask(__m256d const& value_in)
     :m_value(value_in)
   {}
-  SIMD_ALWAYS_INLINE constexpr __m256d get() const { return m_value; }
-  SIMD_ALWAYS_INLINE simd_mask operator||(simd_mask const& other) const {
+  SIMD_ALWAYS_INLINE inline constexpr __m256d get() const { return m_value; }
+  SIMD_ALWAYS_INLINE inline simd_mask operator||(simd_mask const& other) const {
     return simd_mask(_mm256_or_pd(m_value, other.m_value));
   }
 };
@@ -774,14 +792,17 @@ template <>
 class simd_mask<float, simd_abi::avx512> {
   __mmask16 m_value;
  public:
-  SIMD_ALWAYS_INLINE simd_mask() = default;
   using value_type = bool;
-  SIMD_ALWAYS_INLINE static constexpr int size() { return 16; }
-  SIMD_ALWAYS_INLINE constexpr simd_mask(__mmask16 const& value_in)
+  SIMD_ALWAYS_INLINE inline simd_mask() = default;
+  SIMD_ALWAYS_INLINE inline simd_mask(bool value)
+    :m_value(-std::int16_t(value))
+  {}
+  SIMD_ALWAYS_INLINE inline static constexpr int size() { return 16; }
+  SIMD_ALWAYS_INLINE inline constexpr simd_mask(__mmask16 const& value_in)
     :m_value(value_in)
   {}
-  SIMD_ALWAYS_INLINE constexpr __mmask16 get() const { return m_value; }
-  SIMD_ALWAYS_INLINE simd_mask operator||(simd_mask const& other) const {
+  SIMD_ALWAYS_INLINE inline constexpr __mmask16 get() const { return m_value; }
+  SIMD_ALWAYS_INLINE inline simd_mask operator||(simd_mask const& other) const {
     return simd_mask(_kor_mask16(m_value, other.m_value));
   }
 };
@@ -857,11 +878,15 @@ class simd_mask<double, simd_abi::avx512> {
   __mmask8 m_value;
  public:
   using value_type = bool;
-  SIMD_ALWAYS_INLINE static constexpr int size() { return 8; }
-  SIMD_ALWAYS_INLINE constexpr simd_mask(__mmask8 const& value_in)
+  SIMD_ALWAYS_INLINE inline simd_mask() = default;
+  SIMD_ALWAYS_INLINE inline simd_mask(bool value)
+    :m_value(-std::int16_t(value))
+  {}
+  SIMD_ALWAYS_INLINE inline static constexpr int size() { return 8; }
+  SIMD_ALWAYS_INLINE inline constexpr simd_mask(__mmask8 const& value_in)
     :m_value(value_in)
   {}
-  SIMD_ALWAYS_INLINE constexpr __mmask8 get() const { return m_value; }
+  SIMD_ALWAYS_INLINE inline constexpr __mmask8 get() const { return m_value; }
   SIMD_ALWAYS_INLINE simd_mask operator||(simd_mask const& other) const {
     return simd_mask(_kor_mask8(m_value, other.m_value));
   }

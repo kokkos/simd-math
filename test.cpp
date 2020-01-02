@@ -21,7 +21,8 @@ int main() {
   sa.copy_from(aa, simd::element_aligned_tag());
   sb.copy_from(ab, simd::element_aligned_tag());
   sc.copy_from(ac, simd::element_aligned_tag());
-  sd = simd::choose(sa == 2.0 * sb, sa - sc, sb - sc);
+  simd::simd_mask<double, simd::simd_abi::native> ma(false);
+  sd = simd::choose(ma, sa - sc, sb - sc);
   sd.copy_to(ad, simd::element_aligned_tag());
   std::cout << std::setprecision(2);
   for (int i = 0; i < 16; ++i) {
