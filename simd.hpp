@@ -460,6 +460,8 @@ SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::pack<N>> choose(
   return result;
 }
 
+#if (defined(__clang__) || defined(__GNUC__)) && ((!defined(__INTEL_COMPILER)) && (!defined(__CUDACC__)))
+
 namespace simd_abi {
 
 template <int N>
@@ -523,7 +525,7 @@ SIMD_ALWAYS_INLINE inline simd_mask<double, simd_abi::vector_size<32>>::simd_mas
 template <class T, int N>
 SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline bool all_of(simd_mask<T, simd_abi::vector_size<N>> const& a) {
   bool result = true;
-  SIMD_PRAGMA for (int i = 0; i < a.size(); ++i) result = result && a[i];
+  SIMD_PRAGMA for (int i = 0; i < a.size(); ++i) result = result && a.get()[i];
   return result;
 }
 
@@ -533,12 +535,10 @@ class simd<T, simd_abi::vector_size<N>> {
   native_type m_value;
  public:
   using value_type = T;
-  SIMD_ALWAYS_INLINE simd() = default;
-  SIMD_ALWAYS_INLINE static constexpr int size() { return N / sizeof(T); }
-  SIMD_ALWAYS_INLINE simd(T value)
-    :m_value(value)
-  {
-  }
+  SIMD_ALWAYS_INLINE inline simd() = default;
+  SIMD_ALWAYS_INLINE inline static constexpr int size() { return N / sizeof(T); }
+  SIMD_ALWAYS_INLINE inline simd(T value);
+  SIMD_ALWAYS_INLINE inline simd(native_type value):m_value(value) {}
   template <class Flags>
   SIMD_ALWAYS_INLINE simd(T const* ptr, Flags flags) {
     copy_from(ptr, flags);
@@ -575,11 +575,17 @@ class simd<T, simd_abi::vector_size<N>> {
   }
 };
 
+template <>
+SIMD_ALWAYS_INLINE inline simd<float, simd_abi::vector_size<32>>::simd(float value) {
+  m_value = {value, value, value, value,
+             value, value, value, value};
+}
+
 template <class T, int N>
 SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::vector_size<N>> sqrt(simd<T, simd_abi::vector_size<N>> const& a) {
   simd<T, simd_abi::vector_size<N>> result;
   using std::sqrt;
-  SIMD_PRAGMA for (int i = 0; i < a.size(); ++i) result[i] = sqrt(a[i]);
+  SIMD_PRAGMA for (int i = 0; i < a.size(); ++i) result.get()[i] = sqrt(a[i]);
   return result;
 }
 
@@ -632,6 +638,8 @@ SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::vector_size<N>> min
     simd<T, simd_abi::vector_size<N>> const& b) {
   return choose(a < b, a, b);
 }
+
+#endif
 
 /* Intel SVML disclaimer: cbrt, exp, etc. are not intrinsics, they are Intel-proprietary library functions
   https://stackoverflow.com/questions/36636159/where-is-clangs-mm256-pow-ps-intrinsic
