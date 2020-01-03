@@ -332,8 +332,8 @@ class simd_mask<double, simd_abi::pack<N>> {
 template <class T, int N>
 SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline bool all_of(simd_mask<T, simd_abi::pack<N>> const& a) {
   bool result = true;
-  SIMD_PRAGMA for (int i = 0; i < a.size(); ++i) result = result || a[i];
-  return a.get();
+  SIMD_PRAGMA for (int i = 0; i < a.size(); ++i) result = result && a[i];
+  return result;
 }
 
 template <class T, int N>
