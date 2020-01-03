@@ -426,7 +426,6 @@ SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::pack<N>> fma(
     simd<T, simd_abi::pack<N>> const& b,
     simd<T, simd_abi::pack<N>> const& c) {
   simd<T, simd_abi::pack<N>> result;
-  using std::exp;
   SIMD_PRAGMA for (int i = 0; i < a.size(); ++i) result[i] = (a[i] * b[i]) + c[i];
   return result;
 }
