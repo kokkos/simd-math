@@ -460,6 +460,179 @@ SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::pack<N>> choose(
   return result;
 }
 
+namespace simd_abi {
+
+template <int N>
+class vector_size {};
+
+}
+
+template <int N>
+class simd_mask<float, simd_abi::vector_size<N>> {
+  typedef int native_type __attribute__((vector_size(N)));
+  native_type m_value;
+ public:
+  using value_type = bool;
+  SIMD_ALWAYS_INLINE inline simd_mask() = default;
+  SIMD_ALWAYS_INLINE inline static constexpr int size() { return N / sizeof(int); }
+  SIMD_ALWAYS_INLINE inline simd_mask(bool value)
+    :m_value(-int(value))
+  {}
+  SIMD_ALWAYS_INLINE inline simd_mask(native_type value)
+    :m_value(value)
+  {}
+  SIMD_ALWAYS_INLINE inline int operator[](int i) { return m_value[i]; }
+  SIMD_ALWAYS_INLINE inline native_type const& get() const { return m_value; }
+  SIMD_ALWAYS_INLINE inline simd_mask operator||(simd_mask const& other) const {
+    return simd_mask(m_value || other.m_value);
+  }
+};
+
+template <int N>
+class simd_mask<double, simd_abi::vector_size<N>> {
+  typedef long long native_type __attribute__((vector_size(N)));
+  native_type m_value;
+ public:
+  using value_type = bool;
+  SIMD_ALWAYS_INLINE inline simd_mask() = default;
+  SIMD_ALWAYS_INLINE inline static constexpr int size() { return N / sizeof(long long); }
+  SIMD_ALWAYS_INLINE inline simd_mask(bool value);
+  SIMD_ALWAYS_INLINE inline simd_mask(native_type value)
+    :m_value(value)
+  {}
+  SIMD_ALWAYS_INLINE inline long long operator[](int i) { return m_value[i]; }
+  SIMD_ALWAYS_INLINE inline native_type const& get() const { return m_value; }
+  SIMD_ALWAYS_INLINE inline simd_mask operator||(simd_mask const& other) const {
+    return simd_mask(m_value || other.m_value);
+  }
+};
+
+template <>
+SIMD_ALWAYS_INLINE inline simd_mask<float, simd_abi::vector_size<32>>::simd_mask(bool value)
+{
+  m_value = {-int(value), -int(value), -int(value), -int(value),
+             -int(value), -int(value), -int(value), -int(value)};
+}
+
+template <>
+SIMD_ALWAYS_INLINE inline simd_mask<double, simd_abi::vector_size<32>>::simd_mask(bool value)
+{
+  m_value = {-(long long)(value), -(long long)(value), -(long long)(value), -(long long)(value)};
+}
+
+template <class T, int N>
+SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline bool all_of(simd_mask<T, simd_abi::vector_size<N>> const& a) {
+  bool result = true;
+  SIMD_PRAGMA for (int i = 0; i < a.size(); ++i) result = result && a[i];
+  return result;
+}
+
+template <class T, int N>
+class simd<T, simd_abi::vector_size<N>> {
+  typedef T native_type __attribute__((vector_size(N)));
+  native_type m_value;
+ public:
+  using value_type = T;
+  SIMD_ALWAYS_INLINE simd() = default;
+  SIMD_ALWAYS_INLINE static constexpr int size() { return N / sizeof(T); }
+  SIMD_ALWAYS_INLINE simd(T value)
+    :m_value(value)
+  {
+  }
+  template <class Flags>
+  SIMD_ALWAYS_INLINE simd(T const* ptr, Flags flags) {
+    copy_from(ptr, flags);
+  }
+  SIMD_ALWAYS_INLINE simd operator*(simd const& other) const {
+    return simd(m_value * other.m_value);
+  }
+  SIMD_ALWAYS_INLINE simd operator/(simd const& other) const {
+    return simd(m_value / other.m_value);
+  }
+  SIMD_ALWAYS_INLINE simd operator+(simd const& other) const {
+    return simd(m_value + other.m_value);
+  }
+  SIMD_ALWAYS_INLINE simd operator-(simd const& other) const {
+    return simd(m_value - other.m_value);
+  }
+  SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd operator-() const {
+    return simd(-m_value);
+  }
+  SIMD_ALWAYS_INLINE void copy_from(T const* ptr, element_aligned_tag) {
+    SIMD_PRAGMA for (int i = 0; i < size(); ++i) m_value[i] = ptr[i];
+  }
+  SIMD_ALWAYS_INLINE void copy_to(T* ptr, element_aligned_tag) const {
+    SIMD_PRAGMA for (int i = 0; i < size(); ++i) ptr[i] = m_value[i];
+  }
+  SIMD_ALWAYS_INLINE constexpr T operator[](int i) const { return m_value[i]; }
+  SIMD_ALWAYS_INLINE native_type const& get() const { return m_value; }
+  SIMD_ALWAYS_INLINE native_type& get() { return m_value; }
+  SIMD_ALWAYS_INLINE simd_mask<T, simd_abi::vector_size<N>> operator<(simd const& other) const {
+    return simd_mask<T, simd_abi::vector_size<N>>(m_value < other.m_value);
+  }
+  SIMD_ALWAYS_INLINE simd_mask<T, simd_abi::vector_size<N>> operator==(simd const& other) const {
+    return simd_mask<T, simd_abi::vector_size<N>>(m_value == other.m_value);
+  }
+};
+
+template <class T, int N>
+SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::vector_size<N>> sqrt(simd<T, simd_abi::vector_size<N>> const& a) {
+  simd<T, simd_abi::vector_size<N>> result;
+  using std::sqrt;
+  SIMD_PRAGMA for (int i = 0; i < a.size(); ++i) result[i] = sqrt(a[i]);
+  return result;
+}
+
+template <class T, int N>
+SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::vector_size<N>> cbrt(simd<T, simd_abi::vector_size<N>> const& a) {
+  simd<T, simd_abi::vector_size<N>> result;
+  using std::cbrt;
+  SIMD_PRAGMA for (int i = 0; i < a.size(); ++i) result.get()[i] = cbrt(a[i]);
+  return result;
+}
+
+template <class T, int N>
+SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::vector_size<N>> exp(simd<T, simd_abi::vector_size<N>> const& a) {
+  simd<T, simd_abi::vector_size<N>> result;
+  using std::exp;
+  SIMD_PRAGMA for (int i = 0; i < a.size(); ++i) result.get()[i] = exp(a[i]);
+  return result;
+}
+
+template <class T, int N>
+SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::vector_size<N>> fma(
+    simd<T, simd_abi::vector_size<N>> const& a,
+    simd<T, simd_abi::vector_size<N>> const& b,
+    simd<T, simd_abi::vector_size<N>> const& c) {
+  simd<T, simd_abi::vector_size<N>> result;
+  SIMD_PRAGMA for (int i = 0; i < a.size(); ++i) result.get()[i] = (a[i] * b[i]) + c[i];
+  return result;
+}
+
+template <class T, int N>
+SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::vector_size<N>> choose(
+    simd_mask<T, simd_abi::vector_size<N>> const& a,
+    simd<T, simd_abi::vector_size<N>> const& b,
+    simd<T, simd_abi::vector_size<N>> const& c) {
+  simd<T, simd_abi::vector_size<N>> result;
+  SIMD_PRAGMA for (int i = 0; i < a.size(); ++i) result.get()[i] = a.get()[i] ? b.get()[i] : c.get()[i];
+  return result;
+}
+
+template <class T, int N>
+SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::vector_size<N>> max(
+    simd<T, simd_abi::vector_size<N>> const& a,
+    simd<T, simd_abi::vector_size<N>> const& b) {
+  return choose(b < a, a, b);
+}
+
+template <class T, int N>
+SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::vector_size<N>> min(
+    simd<T, simd_abi::vector_size<N>> const& a,
+    simd<T, simd_abi::vector_size<N>> const& b) {
+  return choose(a < b, a, b);
+}
+
 /* Intel SVML disclaimer: cbrt, exp, etc. are not intrinsics, they are Intel-proprietary library functions
   https://stackoverflow.com/questions/36636159/where-is-clangs-mm256-pow-ps-intrinsic
   This is why the specializations that call these functions are protected with __INTEL_COMPILER.
