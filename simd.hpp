@@ -1578,7 +1578,7 @@ using native = neon;
 #elif defined(__VSX__)
 using native = vsx;
 #else
-using native = pack<16>;
+using native = pack<8>;
 #endif
 
 }
