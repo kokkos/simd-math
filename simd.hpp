@@ -396,7 +396,7 @@ class simd<T, simd_abi::pack<N>> {
   }
 };
 
-template <class T, std::size_t N>
+template <class T, int N>
 SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::pack<N>> sqrt(simd<T, simd_abi::pack<N>> const& a) {
   simd<T, simd_abi::pack<N>> result;
   using std::sqrt;
