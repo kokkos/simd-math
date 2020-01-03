@@ -312,7 +312,7 @@ class simd_mask<float, simd_abi::pack<N>> {
 
 template <int N>
 class simd_mask<double, simd_abi::pack<N>> {
-  long long m_value[N];
+  std::int64_t m_value[N];
  public:
   using value_type = bool;
   SIMD_ALWAYS_INLINE inline simd_mask() = default;
@@ -321,7 +321,7 @@ class simd_mask<double, simd_abi::pack<N>> {
     SIMD_PRAGMA for (int i = 0; i < size(); ++i) m_value[i] = value;
   }
   SIMD_ALWAYS_INLINE inline constexpr bool operator[](int i) const { return m_value[i]; }
-  SIMD_ALWAYS_INLINE inline long long& operator[](int i) { return m_value[i]; }
+  SIMD_ALWAYS_INLINE inline std::int64_t& operator[](int i) { return m_value[i]; }
   SIMD_ALWAYS_INLINE inline simd_mask operator||(simd_mask const& other) const {
     simd_mask result;
     SIMD_PRAGMA for (int i = 0; i < size(); ++i) result.m_value[i] = m_value[i] || other.m_value[i];
