@@ -1000,12 +1000,7 @@ class simd_mask<float, simd_abi::avx> {
   using abi_type = simd_abi::avx;
   SIMD_ALWAYS_INLINE inline simd_mask() = default;
   SIMD_ALWAYS_INLINE inline simd_mask(bool value) {
-#ifdef __AVX2__
     m_value = _mm256_castsi256_ps(_mm256_set1_epi32(-int(value)));
-#else
-    __m128 const b1 = _mm_castsi128_ps(_mm_set1_epi32(-int(value)));
-    m_value = _mm256_set_m128(b1, b1);
-#endif
   }
   SIMD_ALWAYS_INLINE inline static constexpr int size() { return 8; }
   SIMD_ALWAYS_INLINE inline constexpr simd_mask(__m256 const& value_in)
@@ -1127,12 +1122,7 @@ class simd_mask<double, simd_abi::avx> {
   using abi_type = simd_abi::avx;
   SIMD_ALWAYS_INLINE inline simd_mask() = default;
   SIMD_ALWAYS_INLINE inline simd_mask(bool value) {
-#ifdef __AVX2__
     m_value = _mm256_castsi256_pd(_mm256_set1_epi64x(-std::int64_t(value)));
-#else
-    __m128 const b1 = _mm_castsi128_ps(_mm_set1_epi32(-int(value)));
-    m_value = _mm256_castps_pd(_mm256_insertf128_ps(_mm256_castps128_ps256(b1), b1, 1));
-#endif
   }
   SIMD_ALWAYS_INLINE inline static constexpr int size() { return 4; }
   SIMD_ALWAYS_INLINE inline constexpr simd_mask(__m256d const& value_in)
