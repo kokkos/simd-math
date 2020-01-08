@@ -506,7 +506,7 @@ SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::pack<N>> choose(
   return result;
 }
 
-#if (defined(__clang__) || defined(__GNUC__)) && ((!defined(__INTEL_COMPILER)) && (!defined(__CUDACC__)))
+#if defined(__clang__)
 
 namespace simd_abi {
 
