@@ -2159,14 +2159,14 @@ class cuda_warp {
 
 }
 
-template <class T>
+template <class T, int N>
 class simd_mask<T, simd_abi::cuda_warp<N>> {
   bool m_value;
  public:
   using value_type = bool;
   using abi_type = simd_abi::cuda_warp<N>;
   using simd_type = simd<T, abi_type>;
-  SIMD_ALWAYS_INLINE SIMD_DEVICE inline simd_mask() = default;
+  SIMD_ALWAYS_INLINE inline simd_mask() = default;
   SIMD_ALWAYS_INLINE SIMD_DEVICE static constexpr
   int size() { return N; }
   SIMD_ALWAYS_INLINE SIMD_DEVICE inline
@@ -2191,13 +2191,13 @@ class simd_mask<T, simd_abi::cuda_warp<N>> {
   }
 };
 
-template <class T>
+template <class T, int N>
 SIMD_ALWAYS_INLINE SIMD_DEVICE inline
 bool all_of(simd_mask<T, simd_abi::cuda_warp<N>> const& a) {
   return bool(__all_sync(simd_abi::cuda_warp<N>::mask(), int(a.get())));
 }
 
-template <class T>
+template <class T, int N>
 SIMD_ALWAYS_INLINE SIMD_DEVICE inline
 bool any_of(simd_mask<T, simd_abi::cuda_warp<N>> const& a) {
   return bool(__any_sync(simd_abi::cuda_warp<N>::mask(), int(a.get())));
@@ -2211,7 +2211,7 @@ class simd<T, simd_abi::cuda_warp<N>> {
   using abi_type = simd_abi::cuda_warp<N>;
   using mask_type = simd_mask<T, abi_type>;
   using storage_type = simd_storage<T, abi_type>;
-  SIMD_ALWAYS_INLINE SIMD_DEVICE inline simd() = default;
+  SIMD_ALWAYS_INLINE inline simd() = default;
   SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE static constexpr int size() { return N; }
   SIMD_ALWAYS_INLINE SIMD_DEVICE inline simd(T value)
     :m_value(value)
@@ -2286,19 +2286,19 @@ SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::cuda_warp<N>> fma(
   return simd<T, simd_abi::cuda_warp<N>>((a.get() * b.get()) + c.get());
 }
 
-template <class T>
+template <class T, int N>
 SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::cuda_warp<N>> max(
     simd<T, simd_abi::cuda_warp<N>> const& a, simd<T, simd_abi::cuda_warp<N>> const& b) {
   return simd<T, simd_abi::cuda_warp<N>>((a.get() < b.get()) ? b.get() : a.get());
 }
 
-template <class T>
+template <class T, int N>
 SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::cuda_warp<N>> min(
     simd<T, simd_abi::cuda_warp<N>> const& a, simd<T, simd_abi::cuda_warp<N>> const& b) {
   return simd<T, simd_abi::cuda_warp<N>>((b.get() < a.get()) ? b.get() : a.get());
 }
 
-template <class T>
+template <class T, int N>
 SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::cuda_warp<N>> choose(
     simd_mask<T, simd_abi::cuda_warp<N>> const& a,
     simd<T, simd_abi::cuda_warp<N>> const& b,
