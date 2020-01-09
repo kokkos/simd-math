@@ -177,6 +177,41 @@ SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline bool any_of(bool a) { return a; }
 
 namespace simd_abi {
 
+template <class Abi>
+class storage;
+
+}
+
+template <class T, class Abi>
+class simd<T, simd_abi::storage<Abi>> {
+  T m_value[simd<T, Abi>::size()];
+ public:
+  using value_type = T;
+  using simd_type = simd<T, Abi>;
+  SIMD_ALWAYS_INLINE inline simd() = default;
+  SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline static constexpr
+  int size() { return simd<T, Abi>::size(); }
+  SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline
+  simd(simd<T, Abi> const& value) {
+    value.copy_to(m_value, element_aligned_tag());
+  }
+  SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline
+  simd(T value)
+    :simd(simd<T, Abi>(value))
+  {}
+  SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline
+  simd& operator=(simd<T, Abi> const& value) {
+    value.copy_to(m_value, element_aligned_tag());
+    return *this;
+  }
+  SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE constexpr
+  T operator[](int i) const { return m_value[i]; }
+  SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE
+  T& operator[](int i) { return m_value[i]; }
+};
+
+namespace simd_abi {
+
 class scalar {};
 
 }
