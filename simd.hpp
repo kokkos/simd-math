@@ -175,37 +175,34 @@ SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, Abi> fma(simd<T, Abi> a, simd
 SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline bool all_of(bool a) { return a; }
 SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline bool any_of(bool a) { return a; }
 
-namespace simd_abi {
-
-template <class Abi>
-class storage;
-
-}
-
 template <class T, class Abi>
-class simd<T, simd_abi::storage<Abi>> {
+class simd_storage {
   T m_value[simd<T, Abi>::size()];
  public:
   using value_type = T;
   using simd_type = simd<T, Abi>;
-  SIMD_ALWAYS_INLINE inline simd() = default;
+  SIMD_ALWAYS_INLINE inline simd_storage() = default;
   SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline static constexpr
   int size() { return simd<T, Abi>::size(); }
   SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline
-  simd(simd<T, Abi> const& value) {
+  simd_storage(simd<T, Abi> const& value) {
     value.copy_to(m_value, element_aligned_tag());
   }
   SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline
-  simd(T value)
-    :simd(simd<T, Abi>(value))
+  simd_storage(T value)
+    :simd_storage(simd<T, Abi>(value))
   {}
   SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline
-  simd& operator=(simd<T, Abi> const& value) {
+  simd_storage& operator=(simd<T, Abi> const& value) {
     value.copy_to(m_value, element_aligned_tag());
     return *this;
   }
-  SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE constexpr
-  T operator[](int i) const { return m_value[i]; }
+  SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE
+  T const* data() const { return m_value; }
+  SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE
+  T* data() { return m_value; }
+  SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE
+  T const& operator[](int i) const { return m_value[i]; }
   SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE
   T& operator[](int i) { return m_value[i]; }
 };
@@ -250,13 +247,23 @@ class simd<T, simd_abi::scalar> {
   T m_value;
  public:
   using value_type = T;
-  using mask_type = simd_mask<T, simd_abi::scalar>;
   using abi_type = simd_abi::scalar;
+  using mask_type = simd_mask<T, abi_type>;
+  using storage_type = simd_storage<T, abi_type>;
   SIMD_ALWAYS_INLINE inline simd() = default;
   SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE static constexpr int size() { return 1; }
   SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd(T value)
     :m_value(value)
   {}
+  SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline
+  simd(storage_type const& value) {
+    copy_from(value.data(), element_aligned_tag());
+  }
+  SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline
+  simd& operator=(storage_type const& value) {
+    copy_from(value.data(), element_aligned_tag());
+    return *this;
+  }
   template <class Flags>
   SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd(T const* ptr, Flags flags) {
     copy_from(ptr, flags);
@@ -420,13 +427,23 @@ class simd<T, simd_abi::pack<N>> {
   T m_value[N];
  public:
   using value_type = T;
-  using mask_type = simd_mask<T, simd_abi::pack<N>>;
   using abi_type = simd_abi::pack<N>;
+  using mask_type = simd_mask<T, abi_type>;
+  using storage_type = simd_storage<T, abi_type>;
   SIMD_ALWAYS_INLINE inline simd() = default;
   SIMD_ALWAYS_INLINE inline static constexpr int size() { return N; }
   SIMD_ALWAYS_INLINE inline simd(T value)
   {
     SIMD_PRAGMA for (int i = 0; i < size(); ++i) m_value[i] = value;
+  }
+  SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline
+  simd(storage_type const& value) {
+    copy_from(value.data(), element_aligned_tag());
+  }
+  SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline
+  simd& operator=(storage_type const& value) {
+    copy_from(value.data(), element_aligned_tag());
+    return *this;
   }
   template <class Flags>
   SIMD_ALWAYS_INLINE simd(T const* ptr, Flags flags) {
@@ -639,12 +656,22 @@ class simd<T, simd_abi::vector_size<N>> {
   native_type m_value;
  public:
   using value_type = T;
-  using mask_type = simd_mask<T, simd_abi::vector_size<N>>;
   using abi_type = simd_abi::vector_size<N>;
+  using mask_type = simd_mask<T, abi_type>;
+  using storage_type = simd_storage<T, abi_type>;
   SIMD_ALWAYS_INLINE inline simd() = default;
   SIMD_ALWAYS_INLINE inline static constexpr int size() { return N / sizeof(T); }
   SIMD_ALWAYS_INLINE inline simd(T value);
   SIMD_ALWAYS_INLINE inline simd(native_type value):m_value(value) {}
+  SIMD_ALWAYS_INLINE inline
+  simd(storage_type const& value) {
+    copy_from(value.data(), element_aligned_tag());
+  }
+  SIMD_ALWAYS_INLINE inline
+  simd& operator=(storage_type const& value) {
+    copy_from(value.data(), element_aligned_tag());
+    return *this;
+  }
   template <class Flags>
   SIMD_ALWAYS_INLINE simd(T const* ptr, Flags flags) {
     copy_from(ptr, flags);
@@ -805,13 +832,23 @@ class simd<float, simd_abi::sse> {
   __m128 m_value;
  public:
   using value_type = float;
-  using mask_type = simd_mask<float, simd_abi::sse>;
   using abi_type = simd_abi::sse;
+  using mask_type = simd_mask<float, abi_type>;
+  using storage_type = simd_storage<float, abi_type>;
   SIMD_ALWAYS_INLINE inline simd() = default;
   SIMD_ALWAYS_INLINE inline static constexpr int size() { return 4; }
   SIMD_ALWAYS_INLINE inline simd(float value)
     :m_value(_mm_set1_ps(value))
   {}
+  SIMD_ALWAYS_INLINE inline
+  simd(storage_type const& value) {
+    copy_from(value.data(), element_aligned_tag());
+  }
+  SIMD_ALWAYS_INLINE inline
+  simd& operator=(storage_type const& value) {
+    copy_from(value.data(), element_aligned_tag());
+    return *this;
+  }
   template <class Flags>
   SIMD_ALWAYS_INLINE inline simd(float const* ptr, Flags flags) {
     copy_from(ptr, flags);
@@ -931,13 +968,23 @@ class simd<double, simd_abi::sse> {
   __m128d m_value;
  public:
   using value_type = double;
-  using mask_type = simd_mask<double, simd_abi::sse>;
   using abi_type = simd_abi::sse;
+  using mask_type = simd_mask<double, abi_type>;
+  using storage_type = simd_storage<double, abi_type>;
   SIMD_ALWAYS_INLINE inline simd() = default;
   SIMD_ALWAYS_INLINE inline static constexpr int size() { return 2; }
   SIMD_ALWAYS_INLINE inline simd(double value)
     :m_value(_mm_set1_pd(value))
   {}
+  SIMD_ALWAYS_INLINE inline
+  simd(storage_type const& value) {
+    copy_from(value.data(), element_aligned_tag());
+  }
+  SIMD_ALWAYS_INLINE inline
+  simd& operator=(storage_type const& value) {
+    copy_from(value.data(), element_aligned_tag());
+    return *this;
+  }
   template <class Flags>
   SIMD_ALWAYS_INLINE inline simd(double const* ptr, Flags flags) {
     copy_from(ptr, flags);
@@ -1066,13 +1113,23 @@ class simd<float, simd_abi::avx> {
   __m256 m_value;
  public:
   using value_type = float;
-  using mask_type = simd_mask<float, simd_abi::avx>;
   using abi_type = simd_abi::avx;
+  using mask_type = simd_mask<float, abi_type>;
+  using storage_type = simd_storage<float, abi_type>;
   SIMD_ALWAYS_INLINE inline simd() = default;
   SIMD_ALWAYS_INLINE inline static constexpr int size() { return 8; }
   SIMD_ALWAYS_INLINE inline simd(float value)
     :m_value(_mm256_set1_ps(value))
   {}
+  SIMD_ALWAYS_INLINE inline
+  simd(storage_type const& value) {
+    copy_from(value.data(), element_aligned_tag());
+  }
+  SIMD_ALWAYS_INLINE inline
+  simd& operator=(storage_type const& value) {
+    copy_from(value.data(), element_aligned_tag());
+    return *this;
+  }
   template <class Flags>
   SIMD_ALWAYS_INLINE inline simd(float const* ptr, Flags flags) {
     copy_from(ptr, flags);
@@ -1190,13 +1247,23 @@ class simd<double, simd_abi::avx> {
   __m256d m_value;
  public:
   using value_type = double;
-  using mask_type = simd_mask<double, simd_abi::avx>;
   using abi_type = simd_abi::avx;
+  using mask_type = simd_mask<double, abi_type>;
+  using storage_type = simd_storage<double, abi_type>;
   SIMD_ALWAYS_INLINE inline simd() = default;
   SIMD_ALWAYS_INLINE inline static constexpr int size() { return 4; }
   SIMD_ALWAYS_INLINE inline simd(double value)
     :m_value(_mm256_set1_pd(value))
   {}
+  SIMD_ALWAYS_INLINE inline
+  simd(storage_type const& value) {
+    copy_from(value.data(), element_aligned_tag());
+  }
+  SIMD_ALWAYS_INLINE inline
+  simd& operator=(storage_type const& value) {
+    copy_from(value.data(), element_aligned_tag());
+    return *this;
+  }
   template <class Flags>
   SIMD_ALWAYS_INLINE inline simd(double const* ptr, Flags flags) {
     copy_from(ptr, flags);
@@ -1325,12 +1392,22 @@ class simd<float, simd_abi::avx512> {
  public:
   SIMD_ALWAYS_INLINE simd() = default;
   using value_type = float;
-  using mask_type = simd_mask<float, simd_abi::avx512>;
   using abi_type = simd_abi::avx512;
+  using mask_type = simd_mask<float, abi_type>;
+  using storage_type = simd_storage<float, abi_type>;
   SIMD_ALWAYS_INLINE inline static constexpr int size() { return 16; }
   SIMD_ALWAYS_INLINE inline simd(float value)
     :m_value(_mm512_set1_ps(value))
   {}
+  SIMD_ALWAYS_INLINE inline
+  simd(storage_type const& value) {
+    copy_from(value.data(), element_aligned_tag());
+  }
+  SIMD_ALWAYS_INLINE inline
+  simd& operator=(storage_type const& value) {
+    copy_from(value.data(), element_aligned_tag());
+    return *this;
+  }
   template <class Flags>
   SIMD_ALWAYS_INLINE inline simd(float const* ptr, Flags flags) {
     copy_from(ptr, flags);
@@ -1444,13 +1521,23 @@ class simd<double, simd_abi::avx512> {
   __m512d m_value;
  public:
   using value_type = double;
-  using mask_type = simd_mask<double, simd_abi::avx512>;
   using abi_type = simd_abi::avx512;
+  using mask_type = simd_mask<double, abi_type>;
+  using storage_type = simd_storage<double, abi_type>;
   SIMD_ALWAYS_INLINE inline simd() = default;
   SIMD_ALWAYS_INLINE inline static constexpr int size() { return 8; }
   SIMD_ALWAYS_INLINE inline simd(double value)
     :m_value(_mm512_set1_pd(value))
   {}
+  SIMD_ALWAYS_INLINE inline
+  simd(storage_type const& value) {
+    copy_from(value.data(), element_aligned_tag());
+  }
+  SIMD_ALWAYS_INLINE inline
+  simd& operator=(storage_type const& value) {
+    copy_from(value.data(), element_aligned_tag());
+    return *this;
+  }
   template <class Flags>
   SIMD_ALWAYS_INLINE inline simd(double const* ptr, Flags flags) {
     copy_from(ptr, flags);
@@ -1574,13 +1661,23 @@ class simd<float, simd_abi::neon> {
   float32x4_t m_value;
  public:
   using value_type = float;
-  using mask_type = simd_mask<float, simd_abi::neon>;
   using abi_type = simd_abi::neon;
+  using mask_type = simd_mask<float, abi_type>;
+  using storage_type = simd_storage<float, abi_type>;
   SIMD_ALWAYS_INLINE inline simd() = default;
   SIMD_ALWAYS_INLINE inline static constexpr int size() { return 4; }
   SIMD_ALWAYS_INLINE inline simd(float value)
     :m_value(vdupq_n_f32(value))
   {}
+  SIMD_ALWAYS_INLINE inline
+  simd(storage_type const& value) {
+    copy_from(value.data(), element_aligned_tag());
+  }
+  SIMD_ALWAYS_INLINE inline
+  simd& operator=(storage_type const& value) {
+    copy_from(value.data(), element_aligned_tag());
+    return *this;
+  }
   template <class Flags>
   SIMD_ALWAYS_INLINE inline simd(float const* ptr, Flags flags) {
     copy_from(ptr, flags);
@@ -1689,13 +1786,23 @@ class simd<double, simd_abi::neon> {
   float64x2_t m_value;
  public:
   using value_type = double;
-  using mask_type = simd_mask<double, simd_abi::neon>;
   using abi_type = simd_abi::neon;
+  using mask_type = simd_mask<double, abi_type>;
+  using storage_type = simd_storage<double, abi_type>;
   SIMD_ALWAYS_INLINE inline simd() = default;
   SIMD_ALWAYS_INLINE inline static constexpr int size() { return 2; }
   SIMD_ALWAYS_INLINE inline simd(double value)
     :m_value(vdupq_n_f64(value))
   {}
+  SIMD_ALWAYS_INLINE inline
+  simd(storage_type const& value) {
+    copy_from(value.data(), element_aligned_tag());
+  }
+  SIMD_ALWAYS_INLINE inline
+  simd& operator=(storage_type const& value) {
+    copy_from(value.data(), element_aligned_tag());
+    return *this;
+  }
   template <class Flags>
   SIMD_ALWAYS_INLINE inline simd(double const* ptr, Flags flags) {
     copy_from(ptr, flags);
@@ -1814,13 +1921,23 @@ class simd<float, simd_abi::vsx> {
   __vector float m_value;
  public:
   using value_type = float;
-  using mask_type = simd_mask<float, simd_abi::vsx>;
   using abi_type = simd_abi::vsx;
+  using mask_type = simd_mask<float, abi_type>;
+  using storage_type = simd_storage<float, abi_type>;
   SIMD_ALWAYS_INLINE inline simd() = default;
   SIMD_ALWAYS_INLINE inline static constexpr int size() { return 4; }
   SIMD_ALWAYS_INLINE inline simd(float value)
     :m_value(vec_splats(value))
   {}
+  SIMD_ALWAYS_INLINE inline
+  simd(storage_type const& value) {
+    copy_from(value.data(), element_aligned_tag());
+  }
+  SIMD_ALWAYS_INLINE inline
+  simd& operator=(storage_type const& value) {
+    copy_from(value.data(), element_aligned_tag());
+    return *this;
+  }
   template <class Flags>
   SIMD_ALWAYS_INLINE inline simd(float const* ptr, Flags flags) {
     copy_from(ptr, flags);
@@ -1925,13 +2042,23 @@ class simd<double, simd_abi::vsx> {
   __vector double m_value;
  public:
   using value_type = double;
-  using mask_type = simd_mask<double, simd_abi::vsx>;
   using abi_type = simd_abi::vsx;
+  using mask_type = simd_mask<double, abi_type>;
+  using storage_type = simd_storage<double, abi_type>;
   SIMD_ALWAYS_INLINE inline simd() = default;
   SIMD_ALWAYS_INLINE inline static constexpr int size() { return 2; }
   SIMD_ALWAYS_INLINE inline simd(double value)
     :m_value(vec_splats(value))
   {}
+  SIMD_ALWAYS_INLINE inline
+  simd(storage_type const& value) {
+    copy_from(value.data(), element_aligned_tag());
+  }
+  SIMD_ALWAYS_INLINE inline
+  simd& operator=(storage_type const& value) {
+    copy_from(value.data(), element_aligned_tag());
+    return *this;
+  }
   template <class Flags>
   SIMD_ALWAYS_INLINE inline simd(double const* ptr, Flags flags) {
     copy_from(ptr, flags);
