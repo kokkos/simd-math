@@ -2139,7 +2139,7 @@ class cuda_warp {
   static_assert(N <= 32, "CUDA warps can't be more than 32 threads");
   SIMD_ALWAYS_INLINE SIMD_DEVICE inline static constexpr
   unsigned mask() {
-    return (N >= 32 ? unsigned(int(-1)) : (unsigned(1) << N) - unsigned(1));
+    return (unsigned(1) << N) - unsigned(1);
   }
 };
 
