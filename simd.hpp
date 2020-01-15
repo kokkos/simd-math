@@ -1524,7 +1524,7 @@ SIMD_ALWAYS_INLINE inline bool all_of(simd_mask<double, simd_abi::avx512> const&
 
 SIMD_ALWAYS_INLINE inline bool any_of(simd_mask<double, simd_abi::avx512> const& a) {
   return !_ktestc_mask8_u8(
-      simd_mask<double, simd_abi::avx>(false).get(), a.get());
+      simd_mask<double, simd_abi::avx512>(false).get(), a.get());
 }
 
 template <>
