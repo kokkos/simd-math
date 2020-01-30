@@ -785,7 +785,7 @@ template <class T, int N>
 SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::vector_size<N>> abs(simd<T, simd_abi::vector_size<N>> const& a) {
   simd<T, simd_abi::vector_size<N>> result;
   using std::sqrt;
-  SIMD_PRAGMA for (int i = 0; i < a.size(); ++i) result.get()[i] = hpc::abs(a[i]);
+  SIMD_PRAGMA for (int i = 0; i < a.size(); ++i) result.get()[i] = abs(a[i]);
   return result;
 }
 
