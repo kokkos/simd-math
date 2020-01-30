@@ -353,6 +353,11 @@ class simd<T, simd_abi::scalar> {
 };
 
 template <class T>
+SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::scalar> abs(simd<T, simd_abi::scalar> const& a) {
+  return simd<T, simd_abi::scalar>(std::abs(a.get()));
+}
+
+template <class T>
 SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::scalar> sqrt(simd<T, simd_abi::scalar> const& a) {
   return simd<T, simd_abi::scalar>(std::sqrt(a.get()));
 }
@@ -547,6 +552,14 @@ class simd<T, simd_abi::pack<N>> {
     return result;
   }
 };
+
+template <class T, int N>
+SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::pack<N>> abs(simd<T, simd_abi::pack<N>> const& a) {
+  simd<T, simd_abi::pack<N>> result;
+  using std::sqrt;
+  SIMD_PRAGMA for (int i = 0; i < a.size(); ++i) result[i] = abs(a[i]);
+  return result;
+}
 
 template <class T, int N>
 SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::pack<N>> sqrt(simd<T, simd_abi::pack<N>> const& a) {
@@ -769,6 +782,14 @@ SIMD_ALWAYS_INLINE inline simd<float, simd_abi::vector_size<32>>::simd(float val
 }
 
 template <class T, int N>
+SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::vector_size<N>> abs(simd<T, simd_abi::vector_size<N>> const& a) {
+  simd<T, simd_abi::vector_size<N>> result;
+  using std::sqrt;
+  SIMD_PRAGMA for (int i = 0; i < a.size(); ++i) result.get()[i] = hpc::abs(a[i]);
+  return result;
+}
+
+template <class T, int N>
 SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::vector_size<N>> sqrt(simd<T, simd_abi::vector_size<N>> const& a) {
   simd<T, simd_abi::vector_size<N>> result;
   using std::sqrt;
@@ -940,6 +961,11 @@ class simd<float, simd_abi::sse> {
   }
 };
 
+SIMD_ALWAYS_INLINE inline simd<float, simd_abi::sse> abs(simd<float, simd_abi::sse> const& a) {
+  __m128 const sign_mask = _mm_set1_ps(-0.f);  // -0.f = 1 << 31
+  return simd<float, simd_abi::sse>(_mm_andnot_ps(sign_mask, a.get()));
+}
+
 SIMD_ALWAYS_INLINE inline simd<float, simd_abi::sse> sqrt(simd<float, simd_abi::sse> const& a) {
   return simd<float, simd_abi::sse>(_mm_sqrt_ps(a.get()));
 }
@@ -1075,6 +1101,11 @@ class simd<double, simd_abi::sse> {
     return simd_mask<double, simd_abi::sse>(_mm_cmpeq_pd(m_value, other.m_value));
   }
 };
+
+SIMD_ALWAYS_INLINE inline simd<double, simd_abi::sse> abs(simd<double, simd_abi::sse> const& a) {
+  __m128d const sign_mask = _mm_set1_pd(-0.);  // -0. = 1 << 63
+  return simd<double, simd_abi::sse>(_mm_andnot_pd(sign_mask, a.get()));
+}
 
 SIMD_ALWAYS_INLINE inline simd<double, simd_abi::sse> sqrt(simd<double, simd_abi::sse> const& a) {
   return simd<double, simd_abi::sse>(_mm_sqrt_pd(a.get()));
@@ -1221,6 +1252,11 @@ class simd<float, simd_abi::avx> {
   }
 };
 
+SIMD_ALWAYS_INLINE inline simd<float, simd_abi::avx> abs(simd<float, simd_abi::avx> const& a) {
+  __m256 sign_mask = _mm256_set1_ps(-0.f);  // -0.f = 1 << 31
+  return simd<float, simd_abi::avx>(_mm256_andnot_ps(sign_mask, a.get()));
+}
+
 SIMD_ALWAYS_INLINE inline simd<float, simd_abi::avx> sqrt(simd<float, simd_abi::avx> const& a) {
   return simd<float, simd_abi::avx>(_mm256_sqrt_ps(a.get()));
 }
@@ -1354,6 +1390,11 @@ class simd<double, simd_abi::avx> {
     return simd_mask<double, simd_abi::avx>(_mm256_cmp_pd(m_value, other.m_value, _CMP_EQ_OS));
   }
 };
+
+SIMD_ALWAYS_INLINE inline simd<double, simd_abi::avx> abs(simd<double, simd_abi::avx> const& a) {
+  __m256d const sign_mask = _mm256_set1_pd(-0.f);  // -0.f = 1 << 31
+  return simd<double, simd_abi::avx>(_mm256_andnot_pd(sign_mask, a.get()));
+}
 
 SIMD_ALWAYS_INLINE inline simd<double, simd_abi::avx> sqrt(simd<double, simd_abi::avx> const& a) {
   return simd<double, simd_abi::avx>(_mm256_sqrt_pd(a.get()));
@@ -1499,6 +1540,11 @@ class simd<float, simd_abi::avx512> {
   }
 };
 
+SIMD_ALWAYS_INLINE inline simd<float, simd_abi::avx512> abs(simd<float, simd_abi::avx512> const& a) {
+  __m512 const rhs = a.get();
+  return reinterpret_cast<__m512>(_mm512_and_epi32(reinterpret_cast<__m512i>(rhs), _mm512_set1_epi32(0x7fffffff)));
+}
+
 SIMD_ALWAYS_INLINE inline simd<float, simd_abi::avx512> sqrt(simd<float, simd_abi::avx512> const& a) {
   return simd<float, simd_abi::avx512>(_mm512_sqrt_ps(a.get()));
 }
@@ -1628,6 +1674,12 @@ class simd<double, simd_abi::avx512> {
     return simd_mask<double, simd_abi::avx512>(_mm512_cmp_pd_mask(m_value, other.m_value, _CMP_EQ_OS));
   }
 };
+
+SIMD_ALWAYS_INLINE inline simd<double, simd_abi::avx512> abs(simd<double, simd_abi::avx512> const& a) {
+  __m512d const rhs = a.get();
+  return reinterpret_cast<__m512d>(_mm512_and_epi64(_mm512_set1_epi64(0x7FFFFFFFFFFFFFFF),
+        reinterpret_cast<__m512i>(rhs)));
+}
 
 SIMD_ALWAYS_INLINE inline simd<double, simd_abi::avx512> sqrt(simd<double, simd_abi::avx512> const& a) {
   return simd<double, simd_abi::avx512>(_mm512_sqrt_pd(a.get()));
@@ -1769,6 +1821,10 @@ class simd<float, simd_abi::neon> {
   }
 };
 
+SIMD_ALWAYS_INLINE inline simd<float, simd_abi::neon> abs(simd<float, simd_abi::neon> const& a) {
+  return simd<float, simd_abi::neon>(vabsq_f32(a.get()));
+}
+
 SIMD_ALWAYS_INLINE inline simd<float, simd_abi::neon> sqrt(simd<float, simd_abi::neon> const& a) {
   return simd<float, simd_abi::neon>(vsqrtq_f32(a.get()));
 }
@@ -1893,6 +1949,10 @@ class simd<double, simd_abi::neon> {
     return simd_mask<double, simd_abi::neon>(vceqq_f64(m_value, other.m_value));
   }
 };
+
+SIMD_ALWAYS_INLINE inline simd<double, simd_abi::neon> abs(simd<double, simd_abi::neon> const& a) {
+  return simd<double, simd_abi::neon>(vabsq_f64(a.get()));
+}
 
 SIMD_ALWAYS_INLINE inline simd<double, simd_abi::neon> sqrt(simd<double, simd_abi::neon> const& a) {
   return simd<double, simd_abi::neon>(vsqrtq_f64(a.get()));
@@ -2032,6 +2092,10 @@ class simd<float, simd_abi::vsx> {
   }
 };
 
+SIMD_ALWAYS_INLINE inline simd<float, simd_abi::vsx> abs(simd<float, simd_abi::vsx> const& a) {
+  return simd<float, simd_abi::vsx>(vec_abs(a.get()));
+}
+
 SIMD_ALWAYS_INLINE inline simd<float, simd_abi::vsx> sqrt(simd<float, simd_abi::vsx> const& a) {
   return simd<float, simd_abi::vsx>(vec_sqrt(a.get()));
 }
@@ -2164,6 +2228,10 @@ class simd<double, simd_abi::vsx> {
     return simd_mask<double, simd_abi::vsx>(vec_cmpeq(m_value, other.m_value));
   }
 };
+
+SIMD_ALWAYS_INLINE inline simd<double, simd_abi::vsx> abs(simd<double, simd_abi::vsx> const& a) {
+  return simd<double, simd_abi::vsx>(vec_abs(a.get()));
+}
 
 SIMD_ALWAYS_INLINE inline simd<double, simd_abi::vsx> sqrt(simd<double, simd_abi::vsx> const& a) {
   return simd<double, simd_abi::vsx>(vec_sqrt(a.get()));
@@ -2311,6 +2379,11 @@ class simd<T, simd_abi::cuda_warp<N>> {
     return mask_type(m_value == other.m_value);
   }
 };
+
+template <class T, int N>
+SIMD_CUDA_ALWAYS_INLINE SIMD_HOST_DEVICE simd<T, simd_abi::cuda_warp<N>> abs(simd<T, simd_abi::cuda_warp<N>> const& a) {
+  return simd<T, simd_abi::cuda_warp<N>>(std::abs(a.get()));
+}
 
 template <class T, int N>
 SIMD_CUDA_ALWAYS_INLINE SIMD_HOST_DEVICE simd<T, simd_abi::cuda_warp<N>> sqrt(simd<T, simd_abi::cuda_warp<N>> const& a) {
