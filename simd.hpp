@@ -1755,11 +1755,11 @@ class simd_mask<float, simd_abi::neon> {
 };
 
 SIMD_ALWAYS_INLINE inline bool all_of(simd_mask<float, simd_abi::neon> const& a) {
-  return vminvq_u32(a) == std::uint32_t(-std::int32_t(1));
+  return vminvq_u32(a.get()) == std::uint32_t(-std::int32_t(1));
 }
 
 SIMD_ALWAYS_INLINE inline bool any_of(simd_mask<float, simd_abi::neon> const& a) {
-  return vmaxvq_u32(a) == std::uint32_t(-std::int32_t(1));
+  return vmaxvq_u32(a.get()) == std::uint32_t(-std::int32_t(1));
 }
 
 template <>
@@ -1879,7 +1879,7 @@ class simd_mask<double, simd_abi::neon> {
     return simd_mask(vandq_u64(m_value, other.m_value));
   }
   SIMD_ALWAYS_INLINE inline simd_mask operator!() const {
-    return simd_mask(vmvnq_u64(m_value));
+    return simd_mask(vreinterpretq_u64_u32(vmvnq_u32(vreinterpretq_u32_u64(m_value))));
   }
 };
 
