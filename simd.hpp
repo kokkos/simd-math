@@ -2277,24 +2277,25 @@ class cuda_warp {
 }
 
 template <class T, int N>
-class simd_storage<T, cuda_warp<N>> {
-  T m_value[simd<T, Abi>::size()];
+class simd_storage<T, simd_abi::cuda_warp<N>> {
+  T m_value[simd<T, simd_abi::cuda_warp<N>>::size()];
  public:
   using value_type = T;
-  using simd_type = simd<T, Abi>;
+  using abi_type = simd_abi::cuda_warp<N>;
+  using simd_type = simd<T, abi_type>;
   SIMD_ALWAYS_INLINE inline simd_storage() = default;
   SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline static constexpr
-  int size() { return simd<T, Abi>::size(); }
+  int size() { return simd<T, abi_type>::size(); }
   SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline
-  simd_storage(simd<T, Abi> const& value) {
+  simd_storage(simd<T, abi_type> const& value) {
     value.copy_to(m_value, element_aligned_tag());
   }
   SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE explicit inline
   simd_storage(T value)
-    :simd_storage(simd<T, Abi>(value))
+    :simd_storage(simd<T, abi_type>(value))
   {}
   SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline
-  simd_storage& operator=(simd<T, Abi> const& value) {
+  simd_storage& operator=(simd<T, abi_type> const& value) {
     value.copy_to(m_value, element_aligned_tag());
     return *this;
   }
