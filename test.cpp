@@ -46,29 +46,64 @@
 
 #include "simd.hpp"
 
+#define ASSERT_EQ(a, b) \
+  if ((a) != (b)) { \
+    std::abort(); \
+  }
+
+template <class Abi, class T, class BinaryOp>
+void test_binary_op(
+    T const* a,
+    T const* b,
+    BinaryOp const& binary_op) {
+  simd::simd<T, Abi> native_a(a, simd::element_aligned_tag());
+  simd::simd<T, Abi> native_b(b, simd::element_aligned_tag());
+  simd::simd<T, Abi> native_answer = binary_op(native_a, native_b);
+  constexpr int size = simd::simd<T, Abi>::size();
+  using pack_abi = simd::simd_abi::pack<size>;
+  simd::simd<T, pack_abi> pack_a(a, simd::element_aligned_tag());
+  simd::simd<T, pack_abi> pack_b(b, simd::element_aligned_tag());
+  simd::simd<T, pack_abi> pack_answer = binary_op(pack_a, pack_b);
+  simd::simd_storage<T, Abi> stored_native_answer(native_answer);
+  simd::simd_storage<T, pack_abi> stored_pack_answer(pack_answer);
+  for (int i = 0; i < size; ++i) {
+    ASSERT_EQ(stored_native_answer[i], stored_pack_answer[i]);
+  }
+}
+
+struct plus {
+  template <class T>
+  T operator()(T const& a, T const& b) const {
+    return a + b;
+  }
+};
+
+struct minus {
+  template <class T>
+  T operator()(T const& a, T const& b) const {
+    return a - b;
+  }
+};
+
+struct multiplies {
+  template <class T>
+  T operator()(T const& a, T const& b) const {
+    return a * b;
+  }
+};
+
+struct divides {
+  template <class T>
+  T operator()(T const& a, T const& b) const {
+    return a / b;
+  }
+};
+
 int main() {
-  simd::simd_storage<double, simd::simd_abi::native> aa;
-  simd::simd_storage<double, simd::simd_abi::native> ab;
-  simd::simd_storage<double, simd::simd_abi::native> ac;
-  simd::simd_storage<double, simd::simd_abi::native> ad;
-  for (int i = 0; i < simd::simd<double, simd::simd_abi::native>::size(); ++i) {
-    aa[i] = 1.0 * (i + 1);
-    ab[i] = 0.5 * (i + 1);
-    ac[i] = 0.1 * (i + 1);
-    ad[i] = 0.0;
-  }
-  simd::simd<double, simd::simd_abi::native> sa;
-  simd::simd<double, simd::simd_abi::native> sb;
-  simd::simd<double, simd::simd_abi::native> sc;
-  simd::simd<double, simd::simd_abi::native> sd;
-  sa = aa;
-  sb = ab;
-  sc = ac;
-  simd::simd_mask<double, simd::simd_abi::native> ma(false);
-  sd = simd::choose(ma, cbrt(sa), fma(sa, sa, sc));
-  ad = sd;
-  std::cout << std::setprecision(6);
-  for (int i = 0; i < simd::simd<double, simd::simd_abi::native>::size(); ++i) {
-    std::cout << ad[i] << '\n';
-  }
+  double const a[] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0};
+  double const b[] = {1.1, 2.2, 3.3, 4.4, 5.5, 6.6, 7.7, 8.8};
+  test_binary_op<simd::simd_abi::native>(a, b, plus());
+  test_binary_op<simd::simd_abi::native>(a, b, minus());
+  test_binary_op<simd::simd_abi::native>(a, b, multiplies());
+  test_binary_op<simd::simd_abi::native>(a, b, divides());
 }
