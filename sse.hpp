@@ -69,8 +69,6 @@
 
 #ifdef __SSE__
 
-#include "simd_common.hpp"
-
 namespace SIMD_NAMESPACE {
 
 namespace simd_abi {
