@@ -53,6 +53,10 @@
 #include <emmintrin.h>
 #endif
 
+#if defined(__FMA__) || defined(__AVX2__)
+#include <immintrin.h>
+#endif
+
 /* Intel SVML disclaimer: cbrt, exp, etc. are not intrinsics, they are Intel-proprietary library functions
   https://stackoverflow.com/questions/36636159/where-is-clangs-mm256-pow-ps-intrinsic
   This is why the specializations that call these functions are protected with __INTEL_COMPILER.
