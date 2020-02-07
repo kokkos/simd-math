@@ -49,7 +49,7 @@
 
 #include "pack.hpp"
 
-#if defined(__clang_major__) && (__calng_major__ >= 11)
+#if defined(__clang_major__) && (__clang_major__ >= 11)
 #include "vector_size.hpp"
 #endif
 
