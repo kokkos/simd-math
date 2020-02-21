@@ -205,7 +205,7 @@ class simd<T, simd_abi::pack<N>> {
 template <class T, int N>
 SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::pack<N>> abs(simd<T, simd_abi::pack<N>> const& a) {
   simd<T, simd_abi::pack<N>> result;
-  using std::sqrt;
+  using std::abs;
   SIMD_PRAGMA for (int i = 0; i < a.size(); ++i) result[i] = abs(a[i]);
   return result;
 }
