@@ -270,6 +270,12 @@ class simd<double, simd_abi::sse> {
   simd(storage_type const& value) {
     copy_from(value.data(), element_aligned_tag());
   }
+#ifdef STK_VOLATILE_SIMD
+  SIMD_ALWAYS_INLINE inline
+  simd(simd const volatile& value)
+    :m_value(value.m_value)
+  {}
+#endif
   SIMD_ALWAYS_INLINE inline
   simd& operator=(storage_type const& value) {
     copy_from(value.data(), element_aligned_tag());
@@ -291,6 +297,11 @@ class simd<double, simd_abi::sse> {
   SIMD_ALWAYS_INLINE inline simd operator+(simd const& other) const {
     return simd(_mm_add_pd(m_value, other.m_value));
   }
+#ifdef STK_VOLATILE_SIMD
+  SIMD_ALWAYS_INLINE inline void plus_equals(simd const volatile& other) volatile {
+    m_value = _mm_add_pd(m_value, other.m_value);
+  }
+#endif
   SIMD_ALWAYS_INLINE inline simd operator-(simd const& other) const {
     return simd(_mm_sub_pd(m_value, other.m_value));
   }
