@@ -102,6 +102,12 @@ class simd<T, simd_abi::scalar> {
   simd(storage_type const& value) {
     copy_from(value.data(), element_aligned_tag());
   }
+#ifdef STK_VOLATILE_SIMD
+  SIMD_ALWAYS_INLINE inline
+  simd(simd const volatile& value)
+    :m_value(value.m_value)
+  {}
+#endif
   SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline
   simd& operator=(storage_type const& value) {
     copy_from(value.data(), element_aligned_tag());
@@ -120,6 +126,11 @@ class simd<T, simd_abi::scalar> {
   SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd operator+(simd const& other) const {
     return simd(m_value + other.m_value);
   }
+#ifdef STK_VOLATILE_SIMD
+  SIMD_ALWAYS_INLINE inline void plus_equals(simd const volatile& other) volatile {
+    m_value = m_value + other.m_value;
+  }
+#endif
   SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd operator-(simd const& other) const {
     return simd(m_value - other.m_value);
   }
