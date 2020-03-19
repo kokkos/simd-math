@@ -151,6 +151,16 @@ class simd<float, simd_abi::avx> {
   }
 };
 
+SIMD_ALWAYS_INLINE inline simd<float, simd_abi::avx> multiplysign(simd<float, simd_abi::avx> const& a, simd<float, simd_abi::avx> const& b) {
+  __m256 const sign_mask = _mm256_set1_ps(-0.f);
+  return simd<float, simd_abi::avx>(_mm256_xor_ps(a.get(), _mm256_and_ps(sign_mask, b.get())));
+}
+
+SIMD_ALWAYS_INLINE inline simd<float, simd_abi::avx> copysign(simd<float, simd_abi::avx> const& a, simd<float, simd_abi::avx> const& b) {
+  __m256 const sign_mask = _mm256_set1_ps(-0.);
+  return simd<float, simd_abi::avx>(_mm256_xor_ps(_mm256_andnot_ps(sign_mask, a.get()), _mm256_and_ps(sign_mask, b.get())));
+}
+
 SIMD_ALWAYS_INLINE inline simd<float, simd_abi::avx> abs(simd<float, simd_abi::avx> const& a) {
   __m256 sign_mask = _mm256_set1_ps(-0.f);  // -0.f = 1 << 31
   return simd<float, simd_abi::avx>(_mm256_andnot_ps(sign_mask, a.get()));
@@ -167,6 +177,10 @@ SIMD_ALWAYS_INLINE inline simd<float, simd_abi::avx> cbrt(simd<float, simd_abi::
 
 SIMD_ALWAYS_INLINE inline simd<float, simd_abi::avx> exp(simd<float, simd_abi::avx> const& a) {
   return simd<float, simd_abi::avx>(_mm256_exp_ps(a.get()));
+}
+
+SIMD_ALWAYS_INLINE inline simd<float, simd_abi::avx> log(simd<float, simd_abi::avx> const& a) {
+  return simd<float, simd_abi::avx>(_mm256_log_ps(a.get()));
 }
 #endif
 
@@ -301,6 +315,16 @@ class simd<double, simd_abi::avx> {
   }
 };
 
+SIMD_ALWAYS_INLINE inline simd<double, simd_abi::avx> multiplysign(simd<double, simd_abi::avx> const& a, simd<double, simd_abi::avx> const& b) {
+  __m256d const sign_mask = _mm256_set1_pd(-0.f);
+  return simd<double, simd_abi::avx>(_mm256_xor_pd(a.get(), _mm256_and_pd(sign_mask, b.get())));
+}
+
+SIMD_ALWAYS_INLINE inline simd<double, simd_abi::avx> copysign(simd<double, simd_abi::avx> const& a, simd<double, simd_abi::avx> const& b) {
+  __m256d const sign_mask = _mm256_set1_pd(-0.f);
+  return simd<double, simd_abi::avx>(_mm256_xor_pd(_mm256_andnot_pd(sign_mask, a.get()), _mm256_and_pd(sign_mask, b.get())));
+}
+
 SIMD_ALWAYS_INLINE inline simd<double, simd_abi::avx> abs(simd<double, simd_abi::avx> const& a) {
   __m256d const sign_mask = _mm256_set1_pd(-0.f);  // -0.f = 1 << 31
   return simd<double, simd_abi::avx>(_mm256_andnot_pd(sign_mask, a.get()));
@@ -317,6 +341,10 @@ SIMD_ALWAYS_INLINE inline simd<double, simd_abi::avx> cbrt(simd<double, simd_abi
 
 SIMD_ALWAYS_INLINE inline simd<double, simd_abi::avx> exp(simd<double, simd_abi::avx> const& a) {
   return simd<double, simd_abi::avx>(_mm256_exp_pd(a.get()));
+}
+
+SIMD_ALWAYS_INLINE inline simd<double, simd_abi::avx> log(simd<double, simd_abi::avx> const& a) {
+  return simd<double, simd_abi::avx>(_mm256_log_pd(a.get()));
 }
 #endif
 
