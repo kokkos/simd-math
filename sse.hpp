@@ -171,6 +171,16 @@ class simd<float, simd_abi::sse> {
   }
 };
 
+SIMD_ALWAYS_INLINE inline simd<float, simd_abi::sse> multiplysign(simd<float, simd_abi::sse> const& a, simd<float, simd_abi::sse> const& b) {
+  __m128 const sign_mask = _mm_set1_ps(-0.);
+  return simd<float, simd_abi::sse>(_mm_xor_ps(a.get(), _mm_and_ps(sign_mask, b.get())));
+}
+
+SIMD_ALWAYS_INLINE inline simd<float, simd_abi::sse> copysign(simd<float, simd_abi::sse> const& a, simd<float, simd_abi::sse> const& b) {
+  __m128 const sign_mask = _mm_set1_ps(-0.);
+  return simd<float, simd_abi::sse>(_mm_xor_ps(_mm_andnot_ps(sign_mask, a.get()), _mm_and_ps(sign_mask, b.get())));
+}
+
 SIMD_ALWAYS_INLINE inline simd<float, simd_abi::sse> abs(simd<float, simd_abi::sse> const& a) {
   __m128 const sign_mask = _mm_set1_ps(-0.f);  // -0.f = 1 << 31
   return simd<float, simd_abi::sse>(_mm_andnot_ps(sign_mask, a.get()));
@@ -187,6 +197,10 @@ SIMD_ALWAYS_INLINE inline simd<float, simd_abi::sse> cbrt(simd<float, simd_abi::
 
 SIMD_ALWAYS_INLINE inline simd<float, simd_abi::sse> exp(simd<float, simd_abi::sse> const& a) {
   return simd<float, simd_abi::sse>(_mm_exp_ps(a.get()));
+}
+
+SIMD_ALWAYS_INLINE inline simd<float, simd_abi::sse> log(simd<float, simd_abi::sse> const& a) {
+  return simd<float, simd_abi::sse>(_mm_log_ps(a.get()));
 }
 #endif
 
@@ -323,6 +337,16 @@ class simd<double, simd_abi::sse> {
   }
 };
 
+SIMD_ALWAYS_INLINE inline simd<double, simd_abi::sse> multiplysign(simd<double, simd_abi::sse> const& a, simd<double, simd_abi::sse> const& b) {
+  __m128d const sign_mask = _mm_set1_pd(-0.);
+  return simd<double, simd_abi::sse>(_mm_xor_pd(a.get(), _mm_and_pd(sign_mask, b.get())));
+}
+
+SIMD_ALWAYS_INLINE inline simd<double, simd_abi::sse> copysign(simd<double, simd_abi::sse> const& a, simd<double, simd_abi::sse> const& b) {
+  __m128d const sign_mask = _mm_set1_pd(-0.);
+  return simd<double, simd_abi::sse>(_mm_xor_pd(_mm_andnot_pd(sign_mask, a.get()), _mm_and_pd(sign_mask, b.get())));
+}
+
 SIMD_ALWAYS_INLINE inline simd<double, simd_abi::sse> abs(simd<double, simd_abi::sse> const& a) {
   __m128d const sign_mask = _mm_set1_pd(-0.);  // -0. = 1 << 63
   return simd<double, simd_abi::sse>(_mm_andnot_pd(sign_mask, a.get()));
@@ -339,6 +363,10 @@ SIMD_ALWAYS_INLINE inline simd<double, simd_abi::sse> cbrt(simd<double, simd_abi
 
 SIMD_ALWAYS_INLINE inline simd<double, simd_abi::sse> exp(simd<double, simd_abi::sse> const& a) {
   return simd<double, simd_abi::sse>(_mm_exp_pd(a.get()));
+}
+
+SIMD_ALWAYS_INLINE inline simd<double, simd_abi::sse> log(simd<double, simd_abi::sse> const& a) {
+  return simd<double, simd_abi::sse>(_mm_log_pd(a.get()));
 }
 #endif
 
