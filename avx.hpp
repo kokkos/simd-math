@@ -256,6 +256,8 @@ class simd<double, simd_abi::avx> {
   SIMD_ALWAYS_INLINE inline simd() = default;
   SIMD_ALWAYS_INLINE inline simd(simd const&) = default;
   SIMD_ALWAYS_INLINE inline simd(simd&&) = default;
+  SIMD_ALWAYS_INLINE inline simd& operator=(simd const&) = default;
+  SIMD_ALWAYS_INLINE inline simd& operator=(simd&&) = default;
   SIMD_ALWAYS_INLINE inline static constexpr int size() { return 4; }
   SIMD_ALWAYS_INLINE inline simd(double value)
     :m_value(_mm256_set1_pd(value))
