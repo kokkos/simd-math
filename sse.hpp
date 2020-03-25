@@ -276,6 +276,8 @@ class simd<double, simd_abi::sse> {
   using mask_type = simd_mask<double, abi_type>;
   using storage_type = simd_storage<double, abi_type>;
   SIMD_ALWAYS_INLINE inline simd() = default;
+  SIMD_ALWAYS_INLINE inline simd(simd const&) = default;
+  SIMD_ALWAYS_INLINE inline simd(simd&&) = default;
   SIMD_ALWAYS_INLINE inline static constexpr int size() { return 2; }
   SIMD_ALWAYS_INLINE inline simd(double value)
     :m_value(_mm_set1_pd(value))

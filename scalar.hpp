@@ -94,6 +94,8 @@ class simd<T, simd_abi::scalar> {
   using mask_type = simd_mask<T, abi_type>;
   using storage_type = simd_storage<T, abi_type>;
   SIMD_ALWAYS_INLINE inline simd() = default;
+  SIMD_ALWAYS_INLINE inline simd(simd const&) = default;
+  SIMD_ALWAYS_INLINE inline simd(simd&&) = default;
   SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE static constexpr int size() { return 1; }
   SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd(T value)
     :m_value(value)
