@@ -238,7 +238,7 @@ class simd_storage {
   SIMD_ALWAYS_INLINE inline simd_storage() = default;
   SIMD_ALWAYS_INLINE inline static constexpr
   int size() { return simd<T, Abi>::size(); }
-  SIMD_ALWAYS_INLINE inline
+  SIMD_ALWAYS_INLINE explicit inline
   simd_storage(simd<T, Abi> const& value) {
     value.copy_to(m_value, element_aligned_tag());
   }
