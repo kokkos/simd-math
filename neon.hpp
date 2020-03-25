@@ -232,6 +232,8 @@ class simd<double, simd_abi::neon> {
   SIMD_ALWAYS_INLINE inline simd() = default;
   SIMD_ALWAYS_INLINE inline simd(simd const&) = default;
   SIMD_ALWAYS_INLINE inline simd(simd&&) = default;
+  SIMD_ALWAYS_INLINE inline simd& operator=(simd const&) = default;
+  SIMD_ALWAYS_INLINE inline simd& operator=(simd&&) = default;
   SIMD_ALWAYS_INLINE inline static constexpr int size() { return 2; }
   SIMD_ALWAYS_INLINE inline simd(double value)
     :m_value(vdupq_n_f64(value))
