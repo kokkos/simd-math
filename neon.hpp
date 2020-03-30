@@ -105,6 +105,9 @@ class simd<float, simd_abi::neon> {
   SIMD_ALWAYS_INLINE inline simd(float value)
     :m_value(vdupq_n_f32(value))
   {}
+  SIMD_ALWAYS_INLINE inline simd(float a, float b, float c, float d)
+    :m_value((float32x4_t){a, b, c, d})
+  {}
   SIMD_ALWAYS_INLINE inline
   simd(storage_type const& value) {
     copy_from(value.data(), element_aligned_tag());
@@ -237,6 +240,9 @@ class simd<double, simd_abi::neon> {
   SIMD_ALWAYS_INLINE inline static constexpr int size() { return 2; }
   SIMD_ALWAYS_INLINE inline simd(double value)
     :m_value(vdupq_n_f64(value))
+  {}
+  SIMD_ALWAYS_INLINE inline simd(double a, double b)
+    :m_value((float64x2_t){a, b})
   {}
   SIMD_ALWAYS_INLINE inline
   simd(storage_type const& value) {
