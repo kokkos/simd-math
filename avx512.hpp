@@ -117,9 +117,15 @@ class simd<float, simd_abi::avx512> {
     return *this;
   }
   template <class Flags>
-  SIMD_ALWAYS_INLINE inline simd(float const* ptr, Flags flags) {
-    copy_from(ptr, flags);
-  }
+  SIMD_ALWAYS_INLINE inline simd(float const* ptr, Flags /*flags*/)
+    :m_value(_mm512_loadu_ps(ptr))
+  {}
+  SIMD_ALWAYS_INLINE inline simd(float const* ptr, int stride)
+    :m_value(_mm512_setr_ps(ptr[0],        ptr[stride],   ptr[2*stride], ptr[3*stride],
+                            ptr[4*stride], ptr[5*stride], ptr[6*stride], ptr[7*stride],
+                            ptr[8*stride], ptr[9*stride], ptr[10*stride], ptr[11*stride],
+                            ptr[12*stride], ptr[13*stride], ptr[14*stride], ptr[15*stride]))
+  {}
   SIMD_ALWAYS_INLINE inline constexpr simd(__m512 const& value_in)
     :m_value(value_in)
   {}
@@ -276,9 +282,13 @@ class simd<double, simd_abi::avx512> {
     return *this;
   }
   template <class Flags>
-  SIMD_ALWAYS_INLINE inline simd(double const* ptr, Flags flags) {
-    copy_from(ptr, flags);
-  }
+  SIMD_ALWAYS_INLINE inline simd(double const* ptr, Flags /*flags*/)
+    :m_value(_mm512_loadu_pd(ptr))
+  {}
+  SIMD_ALWAYS_INLINE inline simd(double const* ptr, int stride)
+    :m_value(_mm512_setr_pd(ptr[0],        ptr[stride],   ptr[2*stride], ptr[3*stride],
+                            ptr[4*stride], ptr[5*stride], ptr[6*stride], ptr[7*stride]))
+  {}
   SIMD_ALWAYS_INLINE inline constexpr simd(__m512d const& value_in)
     :m_value(value_in)
   {}
