@@ -115,9 +115,13 @@ class simd<float, simd_abi::avx> {
     return *this;
   }
   template <class Flags>
-  SIMD_ALWAYS_INLINE inline simd(float const* ptr, Flags flags) {
-    copy_from(ptr, flags);
-  }
+  SIMD_ALWAYS_INLINE inline simd(float const* ptr, Flags /*flags*/)
+    :m_value(_mm256_loadu_ps(ptr))
+  {}
+  SIMD_ALWAYS_INLINE inline simd(float const* ptr, int stride)
+    :m_value(_mm256_setr_ps(ptr[0],        ptr[stride],   ptr[2*stride], ptr[3*stride],
+                            ptr[4*stride], ptr[5*stride], ptr[6*stride], ptr[7*stride]))
+  {}
   SIMD_ALWAYS_INLINE inline constexpr simd(__m256 const& value_in)
     :m_value(value_in)
   {}
@@ -278,9 +282,12 @@ class simd<double, simd_abi::avx> {
     return *this;
   }
   template <class Flags>
-  SIMD_ALWAYS_INLINE inline simd(double const* ptr, Flags flags) {
-    copy_from(ptr, flags);
-  }
+  SIMD_ALWAYS_INLINE inline simd(double const* ptr, Flags flags)
+    :m_value(_mm256_loadu_pd(ptr))
+  {}
+  SIMD_ALWAYS_INLINE inline simd(double const* ptr, int stride)
+    :m_value(_mm256_setr_pd(ptr[0], ptr[stride], ptr[2*stride], ptr[3*stride]))
+  {}
   SIMD_ALWAYS_INLINE inline constexpr simd(__m256d const& value_in)
     :m_value(value_in)
   {}
