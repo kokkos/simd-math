@@ -121,6 +121,9 @@ class simd<float, simd_abi::neon> {
   SIMD_ALWAYS_INLINE inline simd(float const* ptr, Flags flags) {
     copy_from(ptr, flags);
   }
+  SIMD_ALWAYS_INLINE inline simd(float const* ptr, int stride)
+    :simd(ptr[0], ptr[stride], ptr[2*stride], ptr[3*stride])
+  {}
   SIMD_ALWAYS_INLINE inline constexpr simd(float32x4_t const& value_in)
     :m_value(value_in)
   {}
@@ -263,6 +266,9 @@ class simd<double, simd_abi::neon> {
   SIMD_ALWAYS_INLINE inline simd(double const* ptr, Flags flags) {
     copy_from(ptr, flags);
   }
+  SIMD_ALWAYS_INLINE inline simd(double const* ptr, int stride)
+    :simd(ptr[0], ptr[stride])
+  {}
   SIMD_ALWAYS_INLINE inline constexpr simd(float64x2_t const& value_in)
     :m_value(value_in)
   {}
