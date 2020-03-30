@@ -125,6 +125,10 @@ class simd<float, simd_abi::sse> {
   SIMD_ALWAYS_INLINE inline simd(float value)
     :m_value(_mm_set1_ps(value))
   {}
+  SIMD_ALWAYS_INLINE inline simd(
+      float a, float b, float c, float d)
+    :m_value(_mm_setr_ps(a, b, c, d))
+  {}
   SIMD_ALWAYS_INLINE inline
   simd(storage_type const& value) {
     copy_from(value.data(), element_aligned_tag());
@@ -139,7 +143,7 @@ class simd<float, simd_abi::sse> {
     :m_value(_mm_loadu_ps(ptr))
   {}
   SIMD_ALWAYS_INLINE inline simd(float const* ptr, int stride)
-    :m_value(_mm_setr_ps(ptr[0], ptr[stride], ptr[2*stride], ptr[3*stride]))
+    :simd(ptr[0], ptr[stride], ptr[2*stride], ptr[3*stride])
   {}
   SIMD_ALWAYS_INLINE inline constexpr simd(__m128 const& value_in)
     :m_value(value_in)
@@ -287,6 +291,9 @@ class simd<double, simd_abi::sse> {
   SIMD_ALWAYS_INLINE inline simd(double value)
     :m_value(_mm_set1_pd(value))
   {}
+  SIMD_ALWAYS_INLINE inline simd(double a, double b)
+    :m_value(_mm_setr_pd(a, b))
+  {}
   SIMD_ALWAYS_INLINE inline
   simd(storage_type const& value) {
     copy_from(value.data(), element_aligned_tag());
@@ -307,7 +314,7 @@ class simd<double, simd_abi::sse> {
     :m_value(_mm_loadu_pd(ptr))
   {}
   SIMD_ALWAYS_INLINE inline simd(double const* ptr, int stride)
-    :m_value(_mm_setr_pd(ptr[0], ptr[stride]))
+    :simd(ptr[0], ptr[stride])
   {}
   SIMD_ALWAYS_INLINE inline constexpr simd(__m128d const& value_in)
     :m_value(value_in)
