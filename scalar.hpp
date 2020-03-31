@@ -121,6 +121,9 @@ class simd<T, simd_abi::scalar> {
   SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd(T const* ptr, Flags flags) {
     copy_from(ptr, flags);
   }
+  SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd(T const* ptr, int /*stride*/)
+    : m_value(ptr[0])
+  {}
   SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd operator*(simd const& other) const {
     return simd(m_value * other.m_value);
   }
