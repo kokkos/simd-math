@@ -197,10 +197,10 @@ class simd<T, simd_abi::hip_wavefront<N>> {
     return simd(-m_value);
   }
   SIMD_HIP_ALWAYS_INLINE SIMD_DEVICE void copy_from(T const* ptr, element_aligned_tag) {
-    m_value = ptr[threadIdx.x];
+    m_value = ptr[hipThreadIdx_x];
   }
   SIMD_HIP_ALWAYS_INLINE SIMD_DEVICE void copy_to(T* ptr, element_aligned_tag) const {
-    ptr[threadIdx.x] = m_value;
+    ptr[hipThreadIdx_x] = m_value;
   }
   SIMD_HIP_ALWAYS_INLINE SIMD_DEVICE T get() const {
     return m_value;
