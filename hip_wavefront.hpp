@@ -76,7 +76,7 @@ class hip_wavefront {
   }
 };
 
-}
+} // SIMD ABI
 
 template <class T, int N>
 class simd_storage<T, simd_abi::hip_wavefront<N>> {
@@ -215,24 +215,49 @@ class simd<T, simd_abi::hip_wavefront<N>> {
   }
 };
 
-template <class T, int N>
-SIMD_HIP_ALWAYS_INLINE SIMD_HOST_DEVICE simd<T, simd_abi::hip_wavefront<N>> abs(simd<T, simd_abi::hip_wavefront<N>> const& a) {
-  return simd<T, simd_abi::hip_wavefront<N>>(abs(a.get()));
+  // ABS
+template <int N>
+SIMD_HIP_ALWAYS_INLINE SIMD_HOST_DEVICE simd<float, simd_abi::hip_wavefront<N>> abs(simd<float, simd_abi::hip_wavefront<N>> const& a) {
+  return simd<float, simd_abi::hip_wavefront<N>>(fabsf(a.get()));
 }
 
-template <class T, int N>
-SIMD_HIP_ALWAYS_INLINE SIMD_HOST_DEVICE simd<T, simd_abi::hip_wavefront<N>> sqrt(simd<T, simd_abi::hip_wavefront<N>> const& a) {
-  return simd<T, simd_abi::hip_wavefront<N>>(sqrt(a.get()));
+template <int N>
+SIMD_HIP_ALWAYS_INLINE SIMD_HOST_DEVICE simd<double, simd_abi::hip_wavefront<N>> abs(simd<double, simd_abi::hip_wavefront<N>> const& a) {
+  return simd<double, simd_abi::hip_wavefront<N>>(fabs(a.get()));
 }
 
-template <class T, int N>
-SIMD_HIP_ALWAYS_INLINE SIMD_HOST_DEVICE simd<T, simd_abi::hip_wavefront<N>> cbrt(simd<T, simd_abi::hip_wavefront<N>> const& a) {
-  return simd<T, simd_abi::hip_wavefront<N>>(cbrt(a.get()));
+  // SQRT
+template <int N>
+SIMD_HIP_ALWAYS_INLINE SIMD_HOST_DEVICE simd<float, simd_abi::hip_wavefront<N>> sqrt(simd<float, simd_abi::hip_wavefront<N>> const& a) {
+  return simd<float, simd_abi::hip_wavefront<N>>(sqrtf(a.get()));
 }
 
-template <class T, int N>
-SIMD_HIP_ALWAYS_INLINE SIMD_HOST_DEVICE simd<T, simd_abi::hip_wavefront<N>> exp(simd<T, simd_abi::hip_wavefront<N>> const& a) {
-  return simd<T, simd_abi::hip_wavefront<N>>(exp(a.get()));
+template <int N>
+SIMD_HIP_ALWAYS_INLINE SIMD_HOST_DEVICE simd<double, simd_abi::hip_wavefront<N>> sqrt(simd<double, simd_abi::hip_wavefront<N>> const& a) {
+  return simd<double, simd_abi::hip_wavefront<N>>(sqrt(a.get()));
+}
+
+  // CBRT
+template <int N>
+SIMD_HIP_ALWAYS_INLINE SIMD_HOST_DEVICE simd<float, simd_abi::hip_wavefront<N>> cbrt(simd<float, simd_abi::hip_wavefront<N>> const& a) {
+  return simd<float, simd_abi::hip_wavefront<N>>(cbrtf(a.get()));
+}
+
+template <int N>
+SIMD_HIP_ALWAYS_INLINE SIMD_HOST_DEVICE simd<double, simd_abi::hip_wavefront<N>> cbrt(simd<double, simd_abi::hip_wavefront<N>> const& a) {
+  return simd<double, simd_abi::hip_wavefront<N>>(cbrt(a.get()));
+}
+
+  // EXP
+template <int N>
+SIMD_HIP_ALWAYS_INLINE SIMD_HOST_DEVICE simd<float, simd_abi::hip_wavefront<N>> exp(simd<float, simd_abi::hip_wavefront<N>> const& a) {
+  return simd<float, simd_abi::hip_wavefront<N>>(expf(a.get()));
+}
+
+  
+template <int N>
+SIMD_HIP_ALWAYS_INLINE SIMD_HOST_DEVICE simd<double, simd_abi::hip_wavefront<N>> exp(simd<double, simd_abi::hip_wavefront<N>> const& a) {
+  return simd<double, simd_abi::hip_wavefront<N>>(exp(a.get()));
 }
 
 template <class T, int N>
@@ -263,6 +288,6 @@ SIMD_HIP_ALWAYS_INLINE SIMD_HOST_DEVICE simd<T, simd_abi::hip_wavefront<N>> choo
   return simd<T, simd_abi::hip_wavefront<N>>(a.get() ? b.get() : c.get());
 }
 
-}
+} // SIMD_NAMESPACE
 
 #endif
