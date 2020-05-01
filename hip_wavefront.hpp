@@ -219,46 +219,46 @@ class simd<T, simd_abi::hip_wavefront<N>> {
   // ABS
 template <int N>
 SIMD_HIP_ALWAYS_INLINE SIMD_DEVICE simd<float, simd_abi::hip_wavefront<N>> abs(simd<float, simd_abi::hip_wavefront<N>> const& a) {
-  return simd<float, simd_abi::hip_wavefront<N>>(fabsf(a.get()));
+  return simd<float, simd_abi::hip_wavefront<N>>(::fabsf(a.get()));
 }
 
 template <int N>
 SIMD_HIP_ALWAYS_INLINE SIMD_DEVICE simd<double, simd_abi::hip_wavefront<N>> abs(simd<double, simd_abi::hip_wavefront<N>> const& a) {
-  return simd<double, simd_abi::hip_wavefront<N>>(fabs(a.get()));
+  return simd<double, simd_abi::hip_wavefront<N>>(::fabs(a.get()));
 }
 
   // SQRT
 template <int N>
 SIMD_HIP_ALWAYS_INLINE SIMD_DEVICE simd<float, simd_abi::hip_wavefront<N>> sqrt(simd<float, simd_abi::hip_wavefront<N>> const& a) {
-  return simd<float, simd_abi::hip_wavefront<N>>(sqrtf(a.get()));
+  return simd<float, simd_abi::hip_wavefront<N>>(::sqrtf(a.get()));
 }
 
 template <int N>
 SIMD_HIP_ALWAYS_INLINE SIMD_DEVICE simd<double, simd_abi::hip_wavefront<N>> sqrt(simd<double, simd_abi::hip_wavefront<N>> const& a) {
-  return simd<double, simd_abi::hip_wavefront<N>>(sqrt(a.get()));
+  return simd<double, simd_abi::hip_wavefront<N>>(::sqrt(a.get()));
 }
 
   // CBRT
 template <int N>
 SIMD_HIP_ALWAYS_INLINE SIMD_DEVICE simd<float, simd_abi::hip_wavefront<N>> cbrt(simd<float, simd_abi::hip_wavefront<N>> const& a) {
-  return simd<float, simd_abi::hip_wavefront<N>>(cbrtf(a.get()));
+  return simd<float, simd_abi::hip_wavefront<N>>(::cbrtf(a.get()));
 }
 
 template <int N>
 SIMD_HIP_ALWAYS_INLINE SIMD_DEVICE simd<double, simd_abi::hip_wavefront<N>> cbrt(simd<double, simd_abi::hip_wavefront<N>> const& a) {
-  return simd<double, simd_abi::hip_wavefront<N>>(cbrt(a.get()));
+  return simd<double, simd_abi::hip_wavefront<N>>(::cbrt(a.get()));
 }
 
   // EXP
 template <int N>
 SIMD_HIP_ALWAYS_INLINE SIMD_DEVICE simd<float, simd_abi::hip_wavefront<N>> exp(simd<float, simd_abi::hip_wavefront<N>> const& a) {
-  return simd<float, simd_abi::hip_wavefront<N>>(expf(a.get()));
+  return simd<float, simd_abi::hip_wavefront<N>>(::expf(a.get()));
 }
 
   
 template <int N>
 SIMD_HIP_ALWAYS_INLINE SIMD_DEVICE simd<double, simd_abi::hip_wavefront<N>> exp(simd<double, simd_abi::hip_wavefront<N>> const& a) {
-  return simd<double, simd_abi::hip_wavefront<N>>(exp(a.get()));
+  return simd<double, simd_abi::hip_wavefront<N>>(::exp(a.get()));
 }
 
 template <class T, int N>
