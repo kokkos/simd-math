@@ -278,4 +278,24 @@ class simd_size<simd<T, Abi>> {
   static constexpr int value = simd<T, Abi>::size();
 };
 
+
+// Generic Permute
+template <class T, class Abi>
+SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE
+inline simd<T, Abi> permute(simd<int, Abi> const& control, simd<T, Abi> const& a) {
+  T stack_a[simd<T, Abi>::size()];
+  T stack_res[simd<T,Abi>::size()];
+  int stack_control[ simd<T,Abi>::size()];
+
+  a.copy_to(stack_a, element_aligned_tag());
+  control.copy_to(stack_control, element_aligned_tag());
+
+  for (int i = 0; i < simd<T, Abi>::size(); ++i) {
+	  stack_res[i] = stack_a[ stack_control[i] ];
+  }
+  simd<T,Abi> result;
+  result.copy_from(stack_res, element_aligned_tag());
+  return result;
+}
+
 }

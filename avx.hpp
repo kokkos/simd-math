@@ -392,6 +392,102 @@ SIMD_ALWAYS_INLINE inline simd<double, simd_abi::avx> choose(
   return simd<double, simd_abi::avx>(_mm256_blendv_pd(c.get(), b.get(), a.get()));
 }
 
+
+template <>
+class simd<int, simd_abi::avx> {
+  __m256i m_value;
+ public:
+  using value_type = int;
+  using abi_type = simd_abi::avx;
+  using mask_type = simd_mask<int, abi_type>;
+  using storage_type = simd_storage<int, abi_type>;
+  SIMD_ALWAYS_INLINE inline simd() = default;
+  SIMD_ALWAYS_INLINE inline static constexpr int size() { return 8; }
+  SIMD_ALWAYS_INLINE inline simd(int value)
+    :m_value(_mm256_set1_epi32(value))
+  {}
+  SIMD_ALWAYS_INLINE inline simd(
+      int a, int b, int c, int d,
+      int e, int f, int g, int h)
+    :m_value(_mm256_setr_epi32(a, b, c, d, e, f, g, h))
+  {}
+  SIMD_ALWAYS_INLINE inline simd(
+       int a, int b, int c, int d)
+     :m_value(_mm256_setr_epi32(a, b, c, d, 0, 0, 0, 0))
+   {}
+
+  SIMD_ALWAYS_INLINE inline
+  simd(storage_type const& value) {
+    copy_from(value.data(), element_aligned_tag());
+  }
+  SIMD_ALWAYS_INLINE inline
+  simd& operator=(storage_type const& value) {
+    copy_from(value.data(), element_aligned_tag());
+    return *this;
+  }
+  template <class Flags>
+  SIMD_ALWAYS_INLINE inline simd(int const* ptr, Flags /*flags*/)
+    :m_value(::_mm256_loadu_si256((__m256i const *)ptr))
+  {}
+  SIMD_ALWAYS_INLINE inline simd(int const* ptr, int stride)
+    :simd(ptr[0],        ptr[stride],   ptr[2*stride], ptr[3*stride],
+          ptr[4*stride], ptr[5*stride], ptr[6*stride], ptr[7*stride])
+  {}
+  SIMD_ALWAYS_INLINE inline constexpr simd(__m256i const& value_in)
+    :m_value(value_in)
+  {}
+
+#if defined(__AVX2__)
+
+  SIMD_ALWAYS_INLINE inline simd operator*(simd const& other) const {
+    return simd(_mm256_mul_epi32(m_value, other.m_value));
+  }
+
+  SIMD_ALWAYS_INLINE inline simd operator+(simd const& other) const {
+    return simd(_mm256_add_epi32(m_value, other.m_value));
+  }
+  SIMD_ALWAYS_INLINE inline simd operator-(simd const& other) const {
+    return simd(_mm256_sub_epi32(m_value, other.m_value));
+  }
+
+
+  SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd operator-() const {
+    return simd(_mm256_sub_epi32(_mm256_set1_epi32(0.0), m_value));
+  }
+#endif
+
+#ifdef __INTEL_COMPILER
+  SIMD_ALWAYS_INLINE inline simd operator/(simd const& other) const {
+    return simd(_mm256_div_epi32(m_value, other.m_value));
+  }
+#endif
+
+  SIMD_ALWAYS_INLINE inline void copy_from(int const* ptr, element_aligned_tag) {
+    m_value = _mm256_loadu_si256((__m256i const *)ptr);
+  }
+  SIMD_ALWAYS_INLINE inline void copy_to(int* ptr, element_aligned_tag) const {
+    _mm256_storeu_si256((__m256i *)ptr, m_value);
+  }
+  SIMD_ALWAYS_INLINE inline constexpr __m256i get() const { return m_value; }
+
+  /*
+  SIMD_ALWAYS_INLINE inline simd_mask<float, simd_abi::avx> operator<(simd const& other) const {
+    return simd_mask<float, simd_abi::avx>(_mm256_cmp_ps(m_value, other.m_value, _CMP_LT_OS));
+  }
+  SIMD_ALWAYS_INLINE inline simd_mask<float, simd_abi::avx> operator==(simd const& other) const {
+    return simd_mask<float, simd_abi::avx>(_mm256_cmp_ps(m_value, other.m_value, _CMP_EQ_OS));
+  }
+  */
+};
+
+// Specialized permute
+SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE
+inline simd<float, simd_abi::avx> permute(simd<int, simd_abi::avx> const& control,
+		simd<float, simd_abi::avx> const& a) {
+   	simd<float,simd_abi::avx> result(_mm256_permutexvar_ps(control.get(),a.get())  );
+  return result;
+}
+
 }
 
 #endif
