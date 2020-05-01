@@ -50,17 +50,22 @@
 #define SIMD_ALWAYS_INLINE [[gnu::always_inline]]
 #endif
 
-#ifdef __CUDACC__
+#if defined( __CUDACC__ )
 #define SIMD_CUDA_ALWAYS_INLINE __forceinline__
 #endif
 
-#ifdef __CUDACC__
+#if defined( __HIPCC__ )
+#define SIMD_HIP_ALWAYS_INLINE __forceinline__
+#endif
+
+
+#if defined( __CUDACC__) || defined( __HIPCC__ )
 #define SIMD_HOST_DEVICE __host__ __device__
 #else
 #define SIMD_HOST_DEVICE
 #endif
 
-#ifdef __CUDACC__
+#if defined (__CUDACC__) || defined( __HIPCC__ )
 #define SIMD_DEVICE __device__
 #else
 #define SIMD_DEVICE

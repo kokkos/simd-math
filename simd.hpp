@@ -53,8 +53,11 @@
 #include "vector_size.hpp"
 #endif
 
-#ifdef __CUDACC__
+#if defined( __CUDACC__ )
 #include "cuda_warp.hpp"
+
+#elif defined( __HIPCC__ )
+#include "hip_wavefront.hpp"
 
 #else
 
@@ -85,6 +88,8 @@ namespace SIMD_NAMESPACE {
 namespace simd_abi {
 
 #if defined(__CUDACC__)
+using native = scalar;
+#elif defined(__HIPCC__) 
 using native = scalar;
 #elif defined(__AVX512F__)
 using native = avx512;
