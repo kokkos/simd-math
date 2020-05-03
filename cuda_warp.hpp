@@ -165,14 +165,14 @@ class simd<T, simd_abi::cuda_warp<N>> {
   using storage_type = simd_storage<T, abi_type>;
   SIMD_CUDA_ALWAYS_INLINE simd() = default;
   SIMD_CUDA_ALWAYS_INLINE SIMD_HOST_DEVICE static constexpr int size() { return N; }
-  SIMD_CUDA_ALWAYS_INLINE SIMD_DEVICE simd(T value)
+  SIMD_CUDA_ALWAYS_INLINE SIMD_HOST_DEVICE simd(T value)
     :m_value(value)
   {}
-  SIMD_CUDA_ALWAYS_INLINE SIMD_DEVICE
+  SIMD_CUDA_ALWAYS_INLINE SIMD_HOST_DEVICE
   simd(storage_type const& value) {
     copy_from(value.data(), element_aligned_tag());
   }
-  SIMD_CUDA_ALWAYS_INLINE SIMD_DEVICE
+  SIMD_CUDA_ALWAYS_INLINE SIMD_HOST_DEVICE
   simd& operator=(storage_type const& value) {
     copy_from(value.data(), element_aligned_tag());
     return *this;
