@@ -279,6 +279,24 @@ class simd_size<simd<T, Abi>> {
 };
 
 
+template<typename T> 
+class simd_utils;
+
+template<typename T, class Abi>
+class simd_utils< simd<T,Abi> > {
+public:
+  SIMD_ALWAYS_INLINE 
+  static inline typename simd<int, Abi>::storage_type make_permute(const int source_lanes[simd<T,Abi>::size()] ) {
+    using control_storage_t = typename simd<int, Abi>::storage_type;
+    control_storage_t my_mask_storage;
+    for(int i=0; i < simd<T,Abi>::size(); ++i) {
+      my_mask_storage[i] = source_lanes[i];
+    }
+
+    return my_mask_storage;
+  }
+};
+
 // Generic Permute -- does not work on GPUs
 // FIXME: This guard is not sufficient: it should guard against 
 // General Clang GPU Combinations too
