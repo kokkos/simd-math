@@ -480,6 +480,7 @@ class simd<int, simd_abi::avx> {
   */
 };
 
+
 // Specialized permute
 SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE
 inline simd<float, simd_abi::avx> permute(simd<int, simd_abi::avx> const& control,

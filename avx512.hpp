@@ -453,22 +453,6 @@ class simd<int, simd_abi::avx512> {
           i, j, k, l, m, n, o, p))
   {}
 
-  /*
-   * CAVEAT: Loading 8 element here
-   *  sets every second element as needed
-   *  for permutes. Is this a general pattern?
-   *  This is different from AVX & AVX2 where
-   *  there is not a DP shuffle actually,
-   *  We can use the 256 bit permute from AVX512
-   *  buf I believe that expects zeros at the high
-   *  end only 
-   */
-  SIMD_ALWAYS_INLINE inline simd(
-      int a, int b, int c, int d,
-      int e, int f, int g, int h)
-    :m_value(_mm512_setr_epi32(
-			       a, 0, b, 0, c, 0, d, 0,
-			       e, 0, f, 0, g, 0, h, 0))  {}
   SIMD_ALWAYS_INLINE inline
   simd(storage_type const& value) {
     copy_from(value.data(), element_aligned_tag());
@@ -523,6 +507,38 @@ class simd<int, simd_abi::avx512> {
   }
   SIMD_ALWAYS_INLINE inline simd_mask<int, simd_abi::avx512> operator==(simd const& other) const {
     return simd_mask<int, simd_abi::avx512>(_mm512_cmp_epi32_mask(m_value, other.m_value, _CMP_EQ_OS));
+  }
+};
+
+
+  template<>
+  class simd_utils< simd<float,simd_abi::avx512> > {
+public:
+  SIMD_ALWAYS_INLINE
+  inline static typename simd<int, simd_abi::avx512>::storage_type make_permute(const int source_lanes[simd<float,simd_abi::avx512>::size()] ) {
+    using simd_t = simd<float,simd_abi::avx512>;
+    using control_storage_t = typename simd<int, simd_abi::avx512>::storage_type;
+    control_storage_t my_mask_storage;
+    for(int i=0; i < simd_t::size(); ++i) {
+      my_mask_storage[i] = source_lanes[i];
+    }
+    return my_mask_storage;
+  }
+};
+
+  template<>
+  class simd_utils< simd<double,simd_abi::avx512> > {
+public:
+  SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE
+  inline static typename simd<int, simd_abi::avx512>::storage_type make_permute(const int source_lanes[simd<double,simd_abi::avx512>::size()] ) {
+    using control_storage_t = typename simd<int, simd_abi::avx512>::storage_type;
+    control_storage_t my_mask_storage;
+    for(int i=0; i < simd<double,simd_abi::avx512>::size(); ++i) {
+      my_mask_storage[2*i] = source_lanes[i];
+      my_mask_storage[2*i+1] = 0;
+    }
+
+    return my_mask_storage;
   }
 };
 
