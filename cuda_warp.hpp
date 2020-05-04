@@ -121,36 +121,36 @@ class simd_mask<T, simd_abi::cuda_warp<N>> {
   SIMD_CUDA_ALWAYS_INLINE simd_mask() = default;
   SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE static constexpr
   int size() { return N; }
-  SIMD_CUDA_ALWAYS_INLINE SIMD_DEVICE
+  SIMD_CUDA_ALWAYS_INLINE SIMD_HOST_DEVICE
   simd_mask(bool value)
     :m_value(value)
   {}
-  SIMD_CUDA_ALWAYS_INLINE SIMD_DEVICE constexpr
+  SIMD_CUDA_ALWAYS_INLINE SIMD_HOST_DEVICE constexpr
   bool get() const {
     return m_value;
   }
-  SIMD_CUDA_ALWAYS_INLINE SIMD_DEVICE
+  SIMD_CUDA_ALWAYS_INLINE SIMD_HOST_DEVICE
   simd_mask operator||(simd_mask const& other) const {
     return m_value || other.m_value;
   }
-  SIMD_CUDA_ALWAYS_INLINE SIMD_DEVICE
+  SIMD_CUDA_ALWAYS_INLINE SIMD_HOST_DEVICE
   simd_mask operator&&(simd_mask const& other) const {
     return m_value && other.m_value;
   }
-  SIMD_CUDA_ALWAYS_INLINE SIMD_DEVICE
+  SIMD_CUDA_ALWAYS_INLINE SIMD_HOST_DEVICE
   simd_mask operator!() const {
     return !m_value;
   }
 };
 
 template <class T, int N>
-SIMD_CUDA_ALWAYS_INLINE SIMD_DEVICE
+SIMD_CUDA_ALWAYS_INLINE SIMD_HOST_DEVICE
 bool all_of(simd_mask<T, simd_abi::cuda_warp<N>> const& a) {
   return bool(__all_sync(simd_abi::cuda_warp<N>::mask(), int(a.get())));
 }
 
 template <class T, int N>
-SIMD_CUDA_ALWAYS_INLINE SIMD_DEVICE
+SIMD_CUDA_ALWAYS_INLINE SIMD_HOST_DEVICE
 bool any_of(simd_mask<T, simd_abi::cuda_warp<N>> const& a) {
   return bool(__any_sync(simd_abi::cuda_warp<N>::mask(), int(a.get())));
 }
@@ -165,51 +165,55 @@ class simd<T, simd_abi::cuda_warp<N>> {
   using storage_type = simd_storage<T, abi_type>;
   SIMD_CUDA_ALWAYS_INLINE simd() = default;
   SIMD_CUDA_ALWAYS_INLINE SIMD_HOST_DEVICE static constexpr int size() { return N; }
-  SIMD_CUDA_ALWAYS_INLINE SIMD_DEVICE simd(T value)
+  SIMD_CUDA_ALWAYS_INLINE SIMD_HOST_DEVICE simd(T value)
     :m_value(value)
   {}
-  SIMD_CUDA_ALWAYS_INLINE SIMD_DEVICE
+  SIMD_CUDA_ALWAYS_INLINE SIMD_HOST_DEVICE
   simd(storage_type const& value) {
     copy_from(value.data(), element_aligned_tag());
   }
-  SIMD_CUDA_ALWAYS_INLINE SIMD_DEVICE
+  SIMD_CUDA_ALWAYS_INLINE SIMD_HOST_DEVICE
   simd& operator=(storage_type const& value) {
     copy_from(value.data(), element_aligned_tag());
     return *this;
   }
   template <class Flags>
-  SIMD_CUDA_ALWAYS_INLINE SIMD_DEVICE simd(T const* ptr, Flags flags) {
+  SIMD_CUDA_ALWAYS_INLINE SIMD_HOST_DEVICE simd(T const* ptr, Flags flags) {
     copy_from(ptr, flags);
   }
-  SIMD_CUDA_ALWAYS_INLINE SIMD_DEVICE simd operator*(simd const& other) const {
+  SIMD_CUDA_ALWAYS_INLINE SIMD_HOST_DEVICE simd operator*(simd const& other) const {
     return simd(m_value * other.m_value);
   }
-  SIMD_CUDA_ALWAYS_INLINE SIMD_DEVICE simd operator/(simd const& other) const {
+  SIMD_CUDA_ALWAYS_INLINE SIMD_HOST_DEVICE simd operator/(simd const& other) const {
     return simd(m_value / other.m_value);
   }
-  SIMD_CUDA_ALWAYS_INLINE SIMD_DEVICE simd operator+(simd const& other) const {
+  SIMD_CUDA_ALWAYS_INLINE SIMD_HOST_DEVICE simd operator+(simd const& other) const {
     return simd(m_value + other.m_value);
   }
-  SIMD_CUDA_ALWAYS_INLINE SIMD_DEVICE simd operator-(simd const& other) const {
+  SIMD_CUDA_ALWAYS_INLINE SIMD_HOST_DEVICE simd operator-(simd const& other) const {
     return simd(m_value - other.m_value);
   }
-  SIMD_CUDA_ALWAYS_INLINE SIMD_DEVICE simd operator-() const {
+  SIMD_CUDA_ALWAYS_INLINE SIMD_HOST_DEVICE simd operator-() const {
     return simd(-m_value);
   }
-  SIMD_CUDA_ALWAYS_INLINE SIMD_DEVICE void copy_from(T const* ptr, element_aligned_tag) {
+  SIMD_CUDA_ALWAYS_INLINE SIMD_HOST_DEVICE void copy_from(T const* ptr, element_aligned_tag) {
+#ifdef __CUDA_ARCH__
     m_value = ptr[threadIdx.x];
+#endif
   }
-  SIMD_CUDA_ALWAYS_INLINE SIMD_DEVICE void copy_to(T* ptr, element_aligned_tag) const {
+  SIMD_CUDA_ALWAYS_INLINE SIMD_HOST_DEVICE void copy_to(T* ptr, element_aligned_tag) const {
+#ifdef __CUDA_ARCH__
     ptr[threadIdx.x] = m_value;
+#endif
   }
-  SIMD_CUDA_ALWAYS_INLINE SIMD_DEVICE T get() const {
+  SIMD_CUDA_ALWAYS_INLINE SIMD_HOST_DEVICE T get() const {
     return m_value;
   }
-  SIMD_CUDA_ALWAYS_INLINE SIMD_DEVICE
+  SIMD_CUDA_ALWAYS_INLINE SIMD_HOST_DEVICE
   mask_type operator<(simd const& other) const {
     return mask_type(m_value < other.m_value);
   }
-  SIMD_CUDA_ALWAYS_INLINE SIMD_DEVICE
+  SIMD_CUDA_ALWAYS_INLINE SIMD_HOST_DEVICE
   mask_type operator==(simd const& other) const {
     return mask_type(m_value == other.m_value);
   }

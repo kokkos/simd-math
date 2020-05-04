@@ -78,6 +78,39 @@ class simd_mask<T, simd_abi::scalar> {
 };
 
 template <class T>
+class simd_storage<T, simd_abi::scalar> {
+  using Abi = simd_abi::scalar;
+  T m_value;
+ public:
+  using value_type = T;
+  using simd_type = simd<T, Abi>;
+  SIMD_ALWAYS_INLINE inline simd_storage() = default;
+  SIMD_ALWAYS_INLINE inline static constexpr
+  int size() { return simd<T, Abi>::size(); }
+  SIMD_ALWAYS_INLINE explicit SIMD_HOST_DEVICE
+  simd_storage(simd<T, Abi> const& value) SIMD_HOST_DEVICE {
+    value.copy_to(&m_value, element_aligned_tag());
+  }
+  SIMD_ALWAYS_INLINE explicit SIMD_HOST_DEVICE
+  simd_storage(T value)
+    :simd_storage(simd<T, Abi>(value))
+  {}
+  SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE
+  simd_storage& operator=(simd<T, Abi> const& value) {
+    value.copy_to(&m_value, element_aligned_tag());
+    return *this;
+  }
+  SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE
+  T const* data() const { return &m_value; }
+  SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE
+  T* data() { return &m_value; }
+  SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE
+  T const& operator[](int) const { return m_value; }
+  SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE
+  T& operator[](int) { return m_value; }
+};
+
+template <class T>
 SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline
 bool all_of(simd_mask<T, simd_abi::scalar> const& a) { return a.get(); }
 
