@@ -279,7 +279,10 @@ class simd_size<simd<T, Abi>> {
 };
 
 
-// Generic Permute
+// Generic Permute -- does not work on GPUs
+// FIXME: This guard is not sufficient: it should guard against 
+// General Clang GPU Combinations too
+#if !defined(__CUDACC__) && !defined(__HIPCC__)
 template <class T, class Abi>
 SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE
 inline simd<T, Abi> permute(simd<int, Abi> const& control, simd<T, Abi> const& a) {
@@ -297,5 +300,6 @@ inline simd<T, Abi> permute(simd<int, Abi> const& control, simd<T, Abi> const& a
   result.copy_from(stack_res, element_aligned_tag());
   return result;
 }
+#endif
 
 }
