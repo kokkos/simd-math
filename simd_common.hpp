@@ -169,13 +169,21 @@ SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, Abi> operator/(simd<T, Abi> c
   return a / simd<T, Abi>(b);
 }
 
+SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline double copysign(double a, double b) {
+  return std::copysign(a, b);
+}
+
+SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline float copysign(float a, float b) {
+  return std::copysignf(a, b);
+}
+
 template <class T, class Abi>
 SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, Abi> multiplysign(simd<T, Abi> a, simd<T, Abi> b) {
   T tmp_a[simd<T, Abi>::size()];
   T tmp_b[simd<T, Abi>::size()];
   a.copy_to(tmp_a, element_aligned_tag());
   b.copy_to(tmp_b, element_aligned_tag());
-  for (int i = 0; i < simd<T, Abi>::size(); ++i) tmp_a[i] = tmp_a[i]*std::copysign(1.0, tmp_b[i]);
+  for (int i = 0; i < simd<T, Abi>::size(); ++i) tmp_a[i] = tmp_a[i]*SIMD_NAMESPACE::copysign(static_cast<T>(1.0), tmp_b[i]);
   a.copy_from(tmp_a, element_aligned_tag());
   return a;
 }
@@ -186,7 +194,7 @@ SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, Abi> copysign(simd<T, Abi> a,
   T tmp_b[simd<T, Abi>::size()];
   a.copy_to(tmp_a, element_aligned_tag());
   b.copy_to(tmp_b, element_aligned_tag());
-  for (int i = 0; i < simd<T, Abi>::size(); ++i) tmp_a[i] = std::copysign(tmp_a[i], tmp_b[i]);
+  for (int i = 0; i < simd<T, Abi>::size(); ++i) tmp_a[i] = SIMD_NAMESPACE::copysign(tmp_a[i], tmp_b[i]);
   a.copy_from(tmp_a, element_aligned_tag());
   return a;
 }
