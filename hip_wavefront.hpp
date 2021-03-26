@@ -75,9 +75,6 @@ class hip_wavefront {
   SIMD_HOST_DEVICE static unsigned mask() {
     return (unsigned(1) << N) - unsigned(1);
   }
-  static bool is_available() {
-    return true;
-  }
 };
 
 } // SIMD ABI

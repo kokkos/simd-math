@@ -49,10 +49,7 @@ namespace SIMD_NAMESPACE {
 
 namespace simd_abi {
 
-class scalar {
- public:
-  static bool is_available() { return true; }
-};
+class scalar {};
 
 }
 

@@ -53,12 +53,9 @@ namespace SIMD_NAMESPACE {
 
 namespace simd_abi {
 
-class neon {
- public:
-  static bool is_available() {
-    return true;
-  }
-};
+class neon {};
+
+}
 
 template <>
 class simd_mask<float, simd_abi::neon> {
