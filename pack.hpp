@@ -50,7 +50,10 @@ namespace SIMD_NAMESPACE {
 namespace simd_abi {
 
 template <int N>
-class pack;
+class pack {
+ public:
+  static bool is_available() { return true; }
+};
 
 }
 

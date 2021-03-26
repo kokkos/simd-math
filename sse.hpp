@@ -73,7 +73,19 @@ namespace SIMD_NAMESPACE {
 
 namespace simd_abi {
 
-class sse {};
+class sse {
+ public:
+  static bool is_available() {
+#if defined(__clang__) || defined(__GNUC__) || defined(__GNUG__)
+    __builtin_cpu_init();
+    return __builtin_cpu_supports("sse2");
+#elif defined(__INTEL_COMPILER)
+    return _may_i_use_cpu_feature(_FEATURE_SSE2);
+#else
+    return true;
+#endif
+  }
+};
 
 }
 

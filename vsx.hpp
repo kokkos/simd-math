@@ -60,8 +60,16 @@ namespace SIMD_NAMESPACE {
 
 namespace simd_abi {
 
-class vsx {};
-
+class vsx {
+ public:
+  static bool is_available() {
+#if defined(__clang__) || defined(__GNUC__) || defined(__GNUG__)
+    __builtin_cpu_init();
+    return __builtin_cpu_supports("vsx");
+#else
+    return true;
+#endif
+  }
 }
 
 template <>
