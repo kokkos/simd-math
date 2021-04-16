@@ -47,7 +47,12 @@
 #include <cstdint>
 
 #ifndef SIMD_ALWAYS_INLINE
+#if (defined(__clang__) && (__clang_major__ >= 12)) || \
+    (defined(__GNUC__) && !defined(__clang__))
 #define SIMD_ALWAYS_INLINE [[gnu::always_inline]]
+#else
+#define SIMD_ALWAYS_INLINE
+#endif
 #endif
 
 #if defined( __CUDACC__ )
@@ -76,7 +81,7 @@
 #define SIMD_PRAGMA _Pragma("omp simd")
 #elif defined(__clang__)
 #define SIMD_PRAGMA _Pragma("clang loop vectorize(enable)")
-#elif defined(__GNUC__)
+#elif defined(__GNUC__) && !defined(__FUJITSU)
 #define SIMD_PRAGMA _Pragma("GCC ivdep")
 #else
 #define SIMD_PRAGMA

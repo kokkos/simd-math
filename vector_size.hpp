@@ -45,7 +45,13 @@
 
 #include "simd_common.hpp"
 
-#if defined(__clang__)
+#if (defined(__clang__) && (__clang_major__ >= 11)) || \
+    (defined(__GNUC__) && (__GNUC__ >= 10) && (__GNUC_MINOR__ >= 2)) || \
+    (defined(SIMD_ENABLE_VECTOR_SIZE))
+
+#ifndef SIMD_ENABLE_VECTOR_SIZE
+#define SIMD_ENABLE_VECTOR_SIZE
+#endif
 
 namespace SIMD_NAMESPACE {
 
@@ -56,23 +62,23 @@ class vector_size {};
 
 }
 
-template <int N>
-class simd_mask<float, simd_abi::vector_size<N>> {
-  typedef int native_type __attribute__((vector_size(N)));
+template <class T, int N>
+class simd_mask<T, simd_abi::vector_size<N>> {
+  typedef int native_type __attribute__((vector_size(N/(sizeof(T)/sizeof(int)))));
   native_type m_value;
  public:
   using value_type = bool;
   using simd_type = simd<float, simd_abi::vector_size<N>>;
   using abi_type = simd_abi::vector_size<N>;
   SIMD_ALWAYS_INLINE inline simd_mask() = default;
-  SIMD_ALWAYS_INLINE inline static constexpr int size() { return N / sizeof(int); }
+  SIMD_ALWAYS_INLINE inline static constexpr int size() { return N / sizeof(T); }
   SIMD_ALWAYS_INLINE inline simd_mask(bool value)
-    :m_value(-int(value))
+    :m_value(static_cast<int>(value))
   {}
   SIMD_ALWAYS_INLINE inline simd_mask(native_type value)
     :m_value(value)
   {}
-  SIMD_ALWAYS_INLINE inline int operator[](int i) { return m_value[i]; }
+  SIMD_ALWAYS_INLINE inline int operator[](int i) { return reinterpret_cast<int*>(&m_value)[i]; }
   SIMD_ALWAYS_INLINE inline native_type const& get() const { return m_value; }
   SIMD_ALWAYS_INLINE inline simd_mask operator||(simd_mask const& other) const {
     return simd_mask(m_value || other.m_value);
@@ -95,11 +101,13 @@ class simd_mask<double, simd_abi::vector_size<N>> {
   using abi_type = simd_abi::vector_size<N>;
   SIMD_ALWAYS_INLINE inline simd_mask() = default;
   SIMD_ALWAYS_INLINE inline static constexpr int size() { return N / sizeof(long long); }
-  SIMD_ALWAYS_INLINE inline simd_mask(bool value);
+  SIMD_ALWAYS_INLINE inline simd_mask(bool value)
+    :m_value(static_cast<long long>(value))
+  {}
   SIMD_ALWAYS_INLINE inline simd_mask(native_type value)
     :m_value(value)
   {}
-  SIMD_ALWAYS_INLINE inline long long operator[](int i) { return m_value[i]; }
+  SIMD_ALWAYS_INLINE inline long long operator[](int i) { return reinterpret_cast<long long*>(&m_value)[i]; }
   SIMD_ALWAYS_INLINE inline native_type const& get() const { return m_value; }
   SIMD_ALWAYS_INLINE inline simd_mask operator||(simd_mask const& other) const {
     return simd_mask(m_value || other.m_value);
@@ -111,19 +119,6 @@ class simd_mask<double, simd_abi::vector_size<N>> {
     return simd_mask(!m_value);
   }
 };
-
-template <>
-SIMD_ALWAYS_INLINE inline simd_mask<float, simd_abi::vector_size<32>>::simd_mask(bool value)
-{
-  m_value = {-int(value), -int(value), -int(value), -int(value),
-             -int(value), -int(value), -int(value), -int(value)};
-}
-
-template <>
-SIMD_ALWAYS_INLINE inline simd_mask<double, simd_abi::vector_size<32>>::simd_mask(bool value)
-{
-  m_value = {-(long long)(value), -(long long)(value), -(long long)(value), -(long long)(value)};
-}
 
 template <class T, int N>
 SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline bool all_of(simd_mask<T, simd_abi::vector_size<N>> const& a) {
@@ -150,8 +145,8 @@ class simd<T, simd_abi::vector_size<N>> {
   using storage_type = simd_storage<T, abi_type>;
   SIMD_ALWAYS_INLINE inline simd() = default;
   SIMD_ALWAYS_INLINE inline static constexpr int size() { return N / sizeof(T); }
-  SIMD_ALWAYS_INLINE inline simd(T value);
-  SIMD_ALWAYS_INLINE inline simd(native_type value):m_value(value) {}
+  SIMD_ALWAYS_INLINE inline simd(T value) { for(int i=0; i<size(); i++) reinterpret_cast<T*>(&m_value)[i] = value; }
+  explicit SIMD_ALWAYS_INLINE inline simd(const native_type& value):m_value(value) {}
   SIMD_ALWAYS_INLINE inline
   simd(storage_type const& value) {
     copy_from(value.data(), element_aligned_tag());
@@ -174,6 +169,9 @@ class simd<T, simd_abi::vector_size<N>> {
   SIMD_ALWAYS_INLINE simd operator+(simd const& other) const {
     return simd(m_value + other.m_value);
   }
+  SIMD_ALWAYS_INLINE simd operator+=(simd const& other) const {
+    return m_value += other.m_value;
+  }
   SIMD_ALWAYS_INLINE simd operator-(simd const& other) const {
     return simd(m_value - other.m_value);
   }
@@ -181,10 +179,10 @@ class simd<T, simd_abi::vector_size<N>> {
     return simd(-m_value);
   }
   SIMD_ALWAYS_INLINE void copy_from(T const* ptr, element_aligned_tag) {
-    SIMD_PRAGMA for (int i = 0; i < size(); ++i) m_value[i] = ptr[i];
+    SIMD_PRAGMA for (int i = 0; i < size(); ++i) reinterpret_cast<T*>(&m_value)[i] = ptr[i];
   }
   SIMD_ALWAYS_INLINE void copy_to(T* ptr, element_aligned_tag) const {
-    SIMD_PRAGMA for (int i = 0; i < size(); ++i) ptr[i] = m_value[i];
+    SIMD_PRAGMA for (int i = 0; i < size(); ++i) ptr[i] = reinterpret_cast<T*>(&m_value)[i];
   }
   SIMD_ALWAYS_INLINE constexpr T operator[](int i) const { return m_value[i]; }
   SIMD_ALWAYS_INLINE native_type const& get() const { return m_value; }
@@ -196,12 +194,6 @@ class simd<T, simd_abi::vector_size<N>> {
     return simd_mask<T, simd_abi::vector_size<N>>(m_value == other.m_value);
   }
 };
-
-template <>
-SIMD_ALWAYS_INLINE inline simd<float, simd_abi::vector_size<32>>::simd(float value) {
-  m_value = {value, value, value, value,
-             value, value, value, value};
-}
 
 template <class T, int N>
 SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd<T, simd_abi::vector_size<N>> abs(simd<T, simd_abi::vector_size<N>> const& a) {
