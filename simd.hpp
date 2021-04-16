@@ -49,9 +49,7 @@
 
 #include "pack.hpp"
 
-#if defined(__clang_major__) && (__clang_major__ >= 11)
 #include "vector_size.hpp"
-#endif
 
 #if defined( __CUDACC__ )
 #include "cuda_warp.hpp"
@@ -97,12 +95,16 @@ using native = avx512;
 using native = avx;
 #elif defined(__SSE2__)
 using native = sse;
-#elif defined(__ARM_NEON)
+#elif defined(__ARM_NEON) && !defined(__ARM_FEATURE_SVE_BITS)
 using native = neon;
 #elif defined(__VSX__)
 using native = vsx;
 #else
-using native = pack<8>;
+#if defined(__ARM_FEATURE_SVE_BITS)
+using native = vector_size<__ARM_FEATURE_SVE_BITS/8>;
+#else
+using native = vector_size<32>;
+#endif
 #endif
 
 }
