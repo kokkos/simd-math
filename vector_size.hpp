@@ -46,7 +46,12 @@
 #include "simd_common.hpp"
 
 #if (defined(__clang__) && (__clang_major__ >= 11)) || \
-    (defined(__GNUC__) && (__GNUC__ >= 10) && (__GNUC_MINOR__ >= 2))
+    (defined(__GNUC__) && (__GNUC__ >= 10) && (__GNUC_MINOR__ >= 2)) || \
+    (defined(SIMD_ENABLE_VECTOR_SIZE))
+
+#ifndef SIMD_ENABLE_VECTOR_SIZE
+#define SIMD_ENABLE_VECTOR_SIZE
+#endif
 
 namespace SIMD_NAMESPACE {
 
@@ -68,7 +73,7 @@ class simd_mask<T, simd_abi::vector_size<N>> {
   SIMD_ALWAYS_INLINE inline simd_mask() = default;
   SIMD_ALWAYS_INLINE inline static constexpr int size() { return N / sizeof(T); }
   SIMD_ALWAYS_INLINE inline simd_mask(bool value)
-    :m_value(int(value))
+    :m_value(static_cast<int>(value))
   {}
   SIMD_ALWAYS_INLINE inline simd_mask(native_type value)
     :m_value(value)
@@ -97,7 +102,7 @@ class simd_mask<double, simd_abi::vector_size<N>> {
   SIMD_ALWAYS_INLINE inline simd_mask() = default;
   SIMD_ALWAYS_INLINE inline static constexpr int size() { return N / sizeof(long long); }
   SIMD_ALWAYS_INLINE inline simd_mask(bool value)
-    :m_value(long long(value))
+    :m_value(static_cast<long long>(value))
   {}
   SIMD_ALWAYS_INLINE inline simd_mask(native_type value)
     :m_value(value)
