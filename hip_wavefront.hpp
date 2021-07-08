@@ -64,6 +64,8 @@
 #ifdef __HIPCC__
 #include <hip/math_functions.h>
 
+#include <cstdint>
+
 namespace SIMD_NAMESPACE {
 
 namespace simd_abi {
@@ -72,8 +74,11 @@ template <int N>
 class hip_wavefront {
   static_assert(N <= 64, "HIP wavefronts can't be more than 64 threads");
  public:
-  SIMD_HOST_DEVICE static unsigned mask() {
-    return (unsigned(1) << N) - unsigned(1);
+
+  // Do we need strictly 64 bit masks now?
+  // 
+  SIMD_HOST_DEVICE static uint64_t mask() {
+    return ( N==64 ) ? 0xffffffffffffffff : ( ( uint64_t(1) << N ) - uint64_t(1) ); 
   }
 };
 
@@ -144,16 +149,23 @@ class simd_mask<T, simd_abi::hip_wavefront<N>> {
   }
 };
 
+/*! FIXME: HIP does not support warp lane masked __all_of like CUDA 
+ *         yet 
+ */
 template <class T, int N>
 SIMD_HIP_ALWAYS_INLINE SIMD_DEVICE
 bool all_of(simd_mask<T, simd_abi::hip_wavefront<N>> const& a) {
-  return bool(__all_sync(simd_abi::hip_wavefront<N>::mask(), int(a.get())));
+  return bool(__all(int(a.get())));
 }
 
+/*! FIXME: HIP does not support warp lane masked __any_of  like CUDA
+ *  yet
+ */
+ 
 template <class T, int N>
 SIMD_HIP_ALWAYS_INLINE SIMD_DEVICE
 bool any_of(simd_mask<T, simd_abi::hip_wavefront<N>> const& a) {
-  return bool(__any_sync(simd_abi::hip_wavefront<N>::mask(), int(a.get())));
+  return bool(__any(int(a.get())));
 }
 
 template <class T, int N>
@@ -288,6 +300,16 @@ SIMD_HIP_ALWAYS_INLINE SIMD_HOST_DEVICE simd<T, simd_abi::hip_wavefront<N>> choo
     simd<T, simd_abi::hip_wavefront<N>> const& c) {
   return simd<T, simd_abi::hip_wavefront<N>>(a.get() ? b.get() : c.get());
 }
+
+
+// Generic Permute
+template <class T, int N>
+SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE
+inline simd<T, simd_abi::hip_wavefront<N>> permute(simd<int, simd_abi::hip_wavefront<N>> const& control, simd<T, simd_abi::hip_wavefront<N>> const& a) {
+  return simd<T,simd_abi::hip_wavefront<N>>(  __shfl(a.get(), control.get(), N));
+}
+
+
 
 } // SIMD_NAMESPACE
 

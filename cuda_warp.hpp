@@ -72,7 +72,8 @@ class cuda_warp {
   static_assert(N <= 32, "CUDA warps can't be more than 32 threads");
  public:
   SIMD_HOST_DEVICE static unsigned mask() {
-    return (unsigned(1) << N) - unsigned(1);
+
+    return N == 32 ? 0xffffffff : ( (unsigned(1) << N) - unsigned(1) ) ;
   }
 };
 
@@ -266,6 +267,14 @@ SIMD_CUDA_ALWAYS_INLINE SIMD_HOST_DEVICE simd<T, simd_abi::cuda_warp<N>> choose(
     simd<T, simd_abi::cuda_warp<N>> const& c) {
   return simd<T, simd_abi::cuda_warp<N>>(a.get() ? b.get() : c.get());
 }
+
+  // Generic Permute
+  template <class T, int N>
+SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE
+  inline simd<T, simd_abi::cuda_warp<N>> permute(simd<int, simd_abi::cuda_warp<N>> const& control, simd<T, simd_abi::cuda_warp<N>> const& a) {
+    return simd<T,simd_abi::cuda_warp<N>>(  __shfl_sync(simd_abi::cuda_warp<N>::mask(), a.get(),  control.get(), N));
+  }
+
 
 }
 

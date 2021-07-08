@@ -420,6 +420,169 @@ SIMD_ALWAYS_INLINE inline simd<double, simd_abi::avx512> choose(
   return simd<double, simd_abi::avx512>(_mm512_mask_blend_pd(a.get(), c.get(), b.get()));
 }
 
+  // SIMD MASK FOR SIMD INT
+  // Essentially this is the same as the mask for simd<float> but I tried
+  // Deriving from that and that didn't work for me.
+  // The only difference is the line 'using simd_type='
+template <>
+class simd_mask<int, simd_abi::avx512>
+{
+  __mmask16 m_value;
+ public:
+  using value_type = bool;
+  using simd_type = simd<int, simd_abi::avx512>;
+  using abi_type = simd_abi::avx512;
+  SIMD_ALWAYS_INLINE inline simd_mask() = default;
+  SIMD_ALWAYS_INLINE inline simd_mask(bool value)
+    :m_value(-std::int16_t(value))
+  {}
+  SIMD_ALWAYS_INLINE inline static constexpr int size() { return 16; }
+  SIMD_ALWAYS_INLINE inline constexpr simd_mask(__mmask16 const& value_in)
+    :m_value(value_in)
+  {}
+  SIMD_ALWAYS_INLINE inline constexpr __mmask16 get() const { return m_value; }
+  SIMD_ALWAYS_INLINE inline simd_mask operator||(simd_mask const& other) const {
+    return simd_mask(_kor_mask16(m_value, other.m_value));
+  }
+  SIMD_ALWAYS_INLINE inline simd_mask operator&&(simd_mask const& other) const {
+    return simd_mask(_kand_mask16(m_value, other.m_value));
+  }
+  SIMD_ALWAYS_INLINE inline simd_mask operator!() const {
+    return simd_mask(_knot_mask16(m_value));
+  }
+};
+
+  // An integer SIMD class for AVX512
+template <>
+class simd<int, simd_abi::avx512> {
+  __m512i m_value;
+ public:
+  SIMD_ALWAYS_INLINE simd() = default;
+  using value_type = float;
+  using abi_type = simd_abi::avx512;
+  using mask_type = simd_mask<float, abi_type>;
+  using storage_type = simd_storage<int, abi_type>;
+  SIMD_ALWAYS_INLINE inline static constexpr int size() { return 16; }
+  SIMD_ALWAYS_INLINE inline simd(int value)
+    :m_value(_mm512_set1_epi32(value))
+  {}
+  SIMD_ALWAYS_INLINE inline simd(
+      int a, int b, int c, int d,
+      int e, int f, int g, int h,
+      int i, int j, int k, int l,
+      int m, int n, int o, int p)
+    :m_value(_mm512_setr_epi32(
+          a, b, c, d, e, f, g, h,
+          i, j, k, l, m, n, o, p))
+  {}
+
+  SIMD_ALWAYS_INLINE inline
+  simd(storage_type const& value) {
+    copy_from(value.data(), element_aligned_tag());
+  }
+  SIMD_ALWAYS_INLINE inline
+  simd& operator=(storage_type const& value) {
+    copy_from(value.data(), element_aligned_tag());
+    return *this;
+  }
+  template <class Flags>
+  SIMD_ALWAYS_INLINE inline simd(int const* ptr, Flags /*flags*/)
+    :m_value(_mm512_load_epi32(static_cast<void const*>(ptr)))
+  {}
+  SIMD_ALWAYS_INLINE inline simd(int const* ptr, int stride)
+    :simd(ptr[0],        ptr[stride],   ptr[2*stride], ptr[3*stride],
+          ptr[4*stride], ptr[5*stride], ptr[6*stride], ptr[7*stride],
+          ptr[8*stride], ptr[9*stride], ptr[10*stride], ptr[11*stride],
+          ptr[12*stride], ptr[13*stride], ptr[14*stride], ptr[15*stride])
+  {}
+  SIMD_ALWAYS_INLINE inline constexpr simd(__m512i const& value_in)
+    :m_value(value_in)
+  {}
+  SIMD_ALWAYS_INLINE inline simd operator*(simd const& other) const {
+    return simd(_mm512_mul_epi32(m_value, other.m_value));
+  }
+
+#if 0
+  // This needs SVML extension
+  SIMD_ALWAYS_INLINE inline simd operator/(simd const& other) const {
+    return simd(_mm512_div_epi32(m_value, other.m_value));
+  }
+#endif
+
+  SIMD_ALWAYS_INLINE inline simd operator+(simd const& other) const {
+    return simd(_mm512_add_epi32(m_value, other.m_value));
+  }
+  SIMD_ALWAYS_INLINE inline simd operator-(simd const& other) const {
+    return simd(_mm512_sub_epi32(m_value, other.m_value));
+  }
+  SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE inline simd operator-() const {
+    return simd(_mm512_sub_epi32(_mm512_set1_epi32(0), m_value));
+  }
+  SIMD_ALWAYS_INLINE inline void copy_from(int const* ptr, element_aligned_tag) {
+    m_value = _mm512_load_epi32(static_cast<void const*>(ptr));
+  }
+  SIMD_ALWAYS_INLINE inline void copy_to(int* ptr, element_aligned_tag) const {
+    _mm512_store_epi32(ptr, m_value);
+  }
+  SIMD_ALWAYS_INLINE inline constexpr __m512i get() const { return m_value; }
+  SIMD_ALWAYS_INLINE inline simd_mask<int, simd_abi::avx512> operator<(simd const& other) const {
+    return simd_mask<int, simd_abi::avx512>(_mm512_cmp_epi32_mask(m_value, other.m_value, _CMP_LT_OS));
+  }
+  SIMD_ALWAYS_INLINE inline simd_mask<int, simd_abi::avx512> operator==(simd const& other) const {
+    return simd_mask<int, simd_abi::avx512>(_mm512_cmp_epi32_mask(m_value, other.m_value, _CMP_EQ_OS));
+  }
+};
+
+
+  template<>
+  class simd_utils< simd<float,simd_abi::avx512> > {
+public:
+  SIMD_ALWAYS_INLINE
+  inline static typename simd<int, simd_abi::avx512>::storage_type make_permute(const int source_lanes[simd<float,simd_abi::avx512>::size()] ) {
+    using simd_t = simd<float,simd_abi::avx512>;
+    using control_storage_t = typename simd<int, simd_abi::avx512>::storage_type;
+    control_storage_t my_mask_storage;
+    for(int i=0; i < simd_t::size(); ++i) {
+      my_mask_storage[i] = source_lanes[i];
+    }
+    return my_mask_storage;
+  }
+};
+
+  template<>
+  class simd_utils< simd<double,simd_abi::avx512> > {
+public:
+  SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE
+  inline static typename simd<int, simd_abi::avx512>::storage_type make_permute(const int source_lanes[simd<double,simd_abi::avx512>::size()] ) {
+    using control_storage_t = typename simd<int, simd_abi::avx512>::storage_type;
+    control_storage_t my_mask_storage;
+    for(int i=0; i < simd<double,simd_abi::avx512>::size(); ++i) {
+      my_mask_storage[2*i] = source_lanes[i];
+      my_mask_storage[2*i+1] = 0;
+    }
+
+    return my_mask_storage;
+  }
+};
+
+// Specialized permute
+SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE
+inline simd<float, simd_abi::avx512> permute(simd<int, simd_abi::avx512> const& control,
+		simd<float, simd_abi::avx512> const& a) {
+   	simd<float,simd_abi::avx512> result(_mm512_permutexvar_ps(control.get(),a.get())  );
+  return result;
+}
+
+// Specialized permute
+SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE
+inline simd<double, simd_abi::avx512> permute(simd<int, simd_abi::avx512> const& control,
+		simd<double, simd_abi::avx512> const& a) {
+   	simd<double,simd_abi::avx512> result(_mm512_permutexvar_pd(control.get(),a.get())  );
+  return result;
+}
+
+
+
 }
 
 #endif

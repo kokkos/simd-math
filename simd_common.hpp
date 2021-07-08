@@ -291,4 +291,46 @@ class simd_size<simd<T, Abi>> {
   static constexpr int value = simd<T, Abi>::size();
 };
 
+
+template<typename T> 
+class simd_utils;
+
+template<typename T, class Abi>
+class simd_utils< simd<T,Abi> > {
+public:
+  SIMD_ALWAYS_INLINE 
+  static inline typename simd<int, Abi>::storage_type make_permute(const int source_lanes[simd<T,Abi>::size()] ) {
+    using control_storage_t = typename simd<int, Abi>::storage_type;
+    control_storage_t my_mask_storage;
+    for(int i=0; i < simd<T,Abi>::size(); ++i) {
+      my_mask_storage[i] = source_lanes[i];
+    }
+
+    return my_mask_storage;
+  }
+};
+
+// Generic Permute -- does not work on GPUs
+// FIXME: This guard is not sufficient: it should guard against 
+// General Clang GPU Combinations too
+#if !defined(__CUDACC__) && !defined(__HIPCC__)
+template <class T, class Abi>
+SIMD_ALWAYS_INLINE SIMD_HOST_DEVICE
+inline simd<T, Abi> permute(simd<int, Abi> const& control, simd<T, Abi> const& a) {
+  T stack_a[simd<T, Abi>::size()];
+  T stack_res[simd<T,Abi>::size()];
+  int stack_control[ simd<T,Abi>::size()];
+
+  a.copy_to(stack_a, element_aligned_tag());
+  control.copy_to(stack_control, element_aligned_tag());
+
+  for (int i = 0; i < simd<T, Abi>::size(); ++i) {
+	  stack_res[i] = stack_a[ stack_control[i] ];
+  }
+  simd<T,Abi> result;
+  result.copy_from(stack_res, element_aligned_tag());
+  return result;
+}
+#endif
+
 }
