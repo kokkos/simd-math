@@ -6,6 +6,8 @@ set(BUILD_GMOCK OFF CACHE BOOL "Builds the googlemock subproject" FORCE)
 set(INSTALL_GTEST OFF CACHE BOOL "Enable installation of googletest. (Projects embedding googletest may want to turn this OFF.)" FORCE)
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/extern/googletest)
+
+include(CTest)
 include(GoogleTest)
 
 # Hide various options from UI-based property editors
@@ -20,19 +22,25 @@ mark_as_advanced(
 set_target_properties(gtest PROPERTIES FOLDER extern)
 set_target_properties(gtest_main PROPERTIES FOLDER extern)
 
-set(unit_test_name test_test)
-add_executable(
-    ${unit_test_name}
-    test.cpp
-)
+set(unit_test_names TestMath)
 
-target_link_libraries(${unit_test_name} PUBLIC gtest ${SIMD_MATH_LIB})
-# add_dependencies(unit_tests ${unit_test_name})
+foreach(TEST_NAME ${unit_test_names})
+  add_executable(
+    ${TEST_NAME}
+    "${TEST_NAME}.cpp"
+    main.cpp
+  )
 
-target_include_directories(${unit_test_name} PUBLIC ${PROJECT_GTEST_INCLUDE_DIR})
+  target_link_libraries(${TEST_NAME} PUBLIC gtest ${SIMD_MATH_LIB})
+  # add_dependencies(unit_tests ${unit_test_name})
 
-gtest_add_tests(
-    TARGET                 ${unit_test_name}
-    WORKING_DIRECTORY      ${CMAKE_CURRENT_BINARY_DIR}
-    TEST_PREFIX            simd_math:
-)
+  target_include_directories(${TEST_NAME} PUBLIC ${PROJECT_GTEST_INCLUDE_DIR})
+
+  gtest_add_tests(
+      TARGET                 ${TEST_NAME}
+      WORKING_DIRECTORY      ${CMAKE_CURRENT_BINARY_DIR}
+      TEST_PREFIX            simd_math:
+  )
+endforeach()
+
+
