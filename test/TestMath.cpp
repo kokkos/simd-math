@@ -45,151 +45,150 @@
 #include <Kokkos_Core.hpp>
 #include <simd.hpp>
 
-namespace Test{
+namespace Test {
 
 using simd_t = simd::simd<double, simd::simd_abi::native>;
 using mask_t = simd_t::mask_type;
 
-void test_abs(Kokkos::View<simd_t*> data){
-    Kokkos::parallel_for(data.extent(0), KOKKOS_LAMBDA(const int i) {
-        data(i) = simd::abs(data(i));
-    });
+void test_abs(Kokkos::View<simd_t *> data) {
+  Kokkos::parallel_for(
+      data.extent(0),
+      KOKKOS_LAMBDA(const int i) { data(i) = simd::abs(data(i)); });
 }
 
-void test_sqrt(Kokkos::View<simd_t*> data){
-    Kokkos::parallel_for(data.extent(0), KOKKOS_LAMBDA(const int i) {
-        data(i) = simd::sqrt(data(i));
-    });
+void test_sqrt(Kokkos::View<simd_t *> data) {
+  Kokkos::parallel_for(
+      data.extent(0),
+      KOKKOS_LAMBDA(const int i) { data(i) = simd::sqrt(data(i)); });
 }
 
-void test_cbrt(Kokkos::View<simd_t*> data){
-    Kokkos::parallel_for(data.extent(0), KOKKOS_LAMBDA(const int i) {
-        data(i) = simd::cbrt(data(i));
-    });
+void test_cbrt(Kokkos::View<simd_t *> data) {
+  Kokkos::parallel_for(
+      data.extent(0),
+      KOKKOS_LAMBDA(const int i) { data(i) = simd::cbrt(data(i)); });
 }
 
-void test_exp(Kokkos::View<simd_t*> data){
-    Kokkos::parallel_for(data.extent(0), KOKKOS_LAMBDA(const int i) {
-        data(i) = simd::exp(data(i));
-    });
+void test_exp(Kokkos::View<simd_t *> data) {
+  Kokkos::parallel_for(
+      data.extent(0),
+      KOKKOS_LAMBDA(const int i) { data(i) = simd::exp(data(i)); });
 }
 
-void test_fma(Kokkos::View<simd_t*> data, simd_t val_1, simd_t val_2){
-    Kokkos::parallel_for(data.extent(0), KOKKOS_LAMBDA(const int i) {
+void test_fma(Kokkos::View<simd_t *> data, simd_t val_1, simd_t val_2) {
+  Kokkos::parallel_for(
+      data.extent(0), KOKKOS_LAMBDA(const int i) {
         data(i) = simd::fma(data(i), val_1, val_2);
-    });
+      });
 }
 
-void test_max(Kokkos::View<simd_t*> data, simd_t val){
-    Kokkos::parallel_for(data.extent(0), KOKKOS_LAMBDA(const int i) {
-        data(i) = simd::max(data(i), val);
-    });
+void test_max(Kokkos::View<simd_t *> data, simd_t val) {
+  Kokkos::parallel_for(
+      data.extent(0),
+      KOKKOS_LAMBDA(const int i) { data(i) = simd::max(data(i), val); });
 }
 
-void test_min(Kokkos::View<simd_t*> data, simd_t val){
-    Kokkos::parallel_for(data.extent(0), KOKKOS_LAMBDA(const int i) {
-        data(i) = simd::min(data(i), val);
-    });
+void test_min(Kokkos::View<simd_t *> data, simd_t val) {
+  Kokkos::parallel_for(
+      data.extent(0),
+      KOKKOS_LAMBDA(const int i) { data(i) = simd::min(data(i), val); });
 }
-
-
 
 TEST(simd_math, test_abs) {
-    Kokkos::View<simd_t*> data("Test View", 8);
-    Kokkos::deep_copy(data, simd_t(-4.0));
+  Kokkos::View<simd_t *> data("Test View", 8);
+  Kokkos::deep_copy(data, simd_t(-4.0));
 
-    test_abs(data);
+  test_abs(data);
 
-    auto data_h = Kokkos::create_mirror_view(data);
-    Kokkos::deep_copy(data_h, data);
+  auto data_h = Kokkos::create_mirror_view(data);
+  Kokkos::deep_copy(data_h, data);
 
-    for(int i = 0; i < data.extent(0); ++i) {
-        EXPECT_EQ(data_h(i).get(), 4.0);
-    }
+  for (int i = 0; i < data.extent(0); ++i) {
+    EXPECT_EQ(data_h(i).get(), 4.0);
+  }
 }
 
-TEST(simd_math, test_sqrt){
-    Kokkos::View<simd_t*> data("Test View", 8);
-    Kokkos::deep_copy(data, simd_t(16.0));
+TEST(simd_math, test_sqrt) {
+  Kokkos::View<simd_t *> data("Test View", 8);
+  Kokkos::deep_copy(data, simd_t(16.0));
 
-    test_sqrt(data);
+  test_sqrt(data);
 
-    auto data_h = Kokkos::create_mirror_view(data);
-    Kokkos::deep_copy(data_h, data);
+  auto data_h = Kokkos::create_mirror_view(data);
+  Kokkos::deep_copy(data_h, data);
 
-    for(int i = 0; i < data.extent(0); ++i) {
-        EXPECT_EQ(data_h(i).get(), 4.0);
-    }
+  for (int i = 0; i < data.extent(0); ++i) {
+    EXPECT_EQ(data_h(i).get(), 4.0);
+  }
 }
 
-TEST(simd_math, test_cbrt){
-    Kokkos::View<simd_t*> data("Test View", 8);
-    Kokkos::deep_copy(data, simd_t(27.0));
+TEST(simd_math, test_cbrt) {
+  Kokkos::View<simd_t *> data("Test View", 8);
+  Kokkos::deep_copy(data, simd_t(27.0));
 
-    test_cbrt(data);
+  test_cbrt(data);
 
-    auto data_h = Kokkos::create_mirror_view(data);
-    Kokkos::deep_copy(data_h, data);
+  auto data_h = Kokkos::create_mirror_view(data);
+  Kokkos::deep_copy(data_h, data);
 
-    for(int i = 0; i < data.extent(0); ++i) {
-        EXPECT_EQ(data_h(i).get(), 3.0);
-    }
+  for (int i = 0; i < data.extent(0); ++i) {
+    EXPECT_EQ(data_h(i).get(), 3.0);
+  }
 }
 
-TEST(simd_math, test_exp){
-    Kokkos::View<simd_t*> data("Test View", 8);
-    Kokkos::deep_copy(data, simd_t(-4.0));
+TEST(simd_math, test_exp) {
+  Kokkos::View<simd_t *> data("Test View", 8);
+  Kokkos::deep_copy(data, simd_t(-4.0));
 
-    test_exp(data);
+  test_exp(data);
 
-    auto data_h = Kokkos::create_mirror_view(data);
-    Kokkos::deep_copy(data_h, data);
+  auto data_h = Kokkos::create_mirror_view(data);
+  Kokkos::deep_copy(data_h, data);
 
-    for(int i = 0; i < data.extent(0); ++i) {
-        EXPECT_EQ(data_h(i).get(), 4.0);
-    }
+  for (int i = 0; i < data.extent(0); ++i) {
+    EXPECT_EQ(data_h(i).get(), 4.0);
+  }
 }
 
-TEST(simd_math, test_fma){
-    Kokkos::View<simd_t*> data("Test View", 8);
-    Kokkos::deep_copy(data, simd_t(-4.0));
+TEST(simd_math, test_fma) {
+  Kokkos::View<simd_t *> data("Test View", 8);
+  Kokkos::deep_copy(data, simd_t(-4.0));
 
-    test_fma(data, simd_t{2.0}, simd_t{5.0});
+  test_fma(data, simd_t{2.0}, simd_t{5.0});
 
-    auto data_h = Kokkos::create_mirror_view(data);
-    Kokkos::deep_copy(data_h, data);
+  auto data_h = Kokkos::create_mirror_view(data);
+  Kokkos::deep_copy(data_h, data);
 
-    for(int i = 0; i < data.extent(0); ++i) {
-        EXPECT_EQ(data_h(i).get(), -3.0);
-    }
+  for (int i = 0; i < data.extent(0); ++i) {
+    EXPECT_EQ(data_h(i).get(), -3.0);
+  }
 }
 
-TEST(simd_math, test_max){
-    Kokkos::View<simd_t*> data("Test View", 8);
-    Kokkos::deep_copy(data, simd_t(-4.0));
+TEST(simd_math, test_max) {
+  Kokkos::View<simd_t *> data("Test View", 8);
+  Kokkos::deep_copy(data, simd_t(-4.0));
 
-    test_max(data, simd_t{10.0});
+  test_max(data, simd_t{10.0});
 
-    auto data_h = Kokkos::create_mirror_view(data);
-    Kokkos::deep_copy(data_h, data);
+  auto data_h = Kokkos::create_mirror_view(data);
+  Kokkos::deep_copy(data_h, data);
 
-    for(int i = 0; i < data.extent(0); ++i) {
-        EXPECT_EQ(data_h(i).get(), 10.0);
-    }
+  for (int i = 0; i < data.extent(0); ++i) {
+    EXPECT_EQ(data_h(i).get(), 10.0);
+  }
 }
 
-TEST(simd_math, test_min){
-    Kokkos::View<simd_t*> data("Test View", 8);
-    Kokkos::deep_copy(data, simd_t(4.0));
+TEST(simd_math, test_min) {
+  Kokkos::View<simd_t *> data("Test View", 8);
+  Kokkos::deep_copy(data, simd_t(4.0));
 
-    test_min(data, simd_t{1.0});
+  test_min(data, simd_t{1.0});
 
-    auto data_h = Kokkos::create_mirror_view(data);
-    Kokkos::deep_copy(data_h, data);
+  auto data_h = Kokkos::create_mirror_view(data);
+  Kokkos::deep_copy(data_h, data);
 
-    for(int i = 0; i < data.extent(0); ++i) {
-        EXPECT_EQ(data_h(i).get(), 1.0);
-    }
+  for (int i = 0; i < data.extent(0); ++i) {
+    EXPECT_EQ(data_h(i).get(), 1.0);
+  }
 }
 
-}
+}  // namespace Test
