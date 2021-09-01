@@ -10,4 +10,6 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake-mo
 set(SIMD_MATH_LIB simd_math CACHE INTERNAL "" FORCE )
 
 add_subdirectory(src)
+
+include(CTest)
 add_subdirectory(test)

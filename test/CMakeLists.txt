@@ -7,7 +7,6 @@ set(INSTALL_GTEST OFF CACHE BOOL "Enable installation of googletest. (Projects e
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/extern/googletest)
 
-include(CTest)
 include(GoogleTest)
 
 # Hide various options from UI-based property editors
@@ -42,5 +41,3 @@ foreach(TEST_NAME ${unit_test_names})
       TEST_PREFIX            simd_math:
   )
 endforeach()
-
-
