@@ -21,7 +21,11 @@ mark_as_advanced(
 set_target_properties(gtest PROPERTIES FOLDER extern)
 set_target_properties(gtest_main PROPERTIES FOLDER extern)
 
-set(unit_test_names TestMath)
+list(APPEND
+  unit_test_names
+  TestMath
+  TestSimdMask
+)
 
 foreach(TEST_NAME ${unit_test_names})
   add_executable(
