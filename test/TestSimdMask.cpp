@@ -50,7 +50,7 @@ namespace Test {
 using simd_t = simd::simd<double, simd::simd_abi::native>;
 using mask_t = simd_t::mask_type;
 
-TEST(simd_math, simd_mask_basic_api) {
+TEST(simd_mask, simd_mask_basic_api) {
   const mask_t a(true);
   const mask_t b(false);
 
@@ -89,7 +89,7 @@ bool test_is_smaller(Kokkos::View<simd_t *> data) {
       });
 
   Kokkos::View<bool *> results_scalar((bool *)(results.data()),
-                                      results.extent(0) / simd_bool::size());
+                                      results.extent(0) * simd_bool::size());
 
   int result = 0;
   Kokkos::parallel_reduce(
@@ -99,7 +99,7 @@ bool test_is_smaller(Kokkos::View<simd_t *> data) {
   return result == results_scalar.extent(0);
 }
 
-TEST(simd_math, simd_mask_less) {
+TEST(simd_mask, simd_mask_less) {
   constexpr int data_size      = 10 * simd_t::size();
   constexpr int simd_data_size = data_size / simd_t::size();
 
