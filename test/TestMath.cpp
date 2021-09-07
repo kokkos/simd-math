@@ -52,7 +52,7 @@ using mask_t = simd_t::mask_type;
 
 // Methods to create data
 Kokkos::View<simd_t *> createDataWithUniqValue(std::string name, int size, double value) {
-    Kokkos::View<simd_t *> data("Test View", 8);
+    Kokkos::View<simd_t *> data(name, size);
     Kokkos::deep_copy(data, simd_t(value));
     return data;
 }
@@ -60,7 +60,7 @@ Kokkos::View<simd_t *> createDataWithUniqValue(std::string name, int size, doubl
 Kokkos::View<simd_t *> createDataZeroToSizePositive(std::string name, int size) {
     Kokkos::View<simd_t *> data(name, size);
     auto data_h = Kokkos::create_mirror_view(Kokkos::HostSpace(), data); // this lives on host
-    for(int i = 0; i < data_h.extent(0); ++i)
+    for(size_t i = 0; i < data_h.extent(0); ++i)
     {
       data_h(i) = simd_t{static_cast<double>(i)};
     }
@@ -72,7 +72,7 @@ Kokkos::View<simd_t *> createDataZeroToSizePositive(std::string name, int size) 
 Kokkos::View<simd_t *> createDataSQRT(std::string name, int size) {
     Kokkos::View<simd_t *> data(name, size);
     auto data_h = Kokkos::create_mirror_view(Kokkos::HostSpace(), data); // this lives on host
-    for(int i = 0; i < data_h.extent(0); ++i)
+    for(size_t i = 0; i < data_h.extent(0); ++i)
     {
       data_h(i) = simd_t{static_cast<double>(i)} * simd_t{static_cast<double>(i)};
     }
@@ -84,7 +84,7 @@ Kokkos::View<simd_t *> createDataSQRT(std::string name, int size) {
 Kokkos::View<simd_t *> createDataCBRT(std::string name, int size) {
     Kokkos::View<simd_t *> data(name, size);
     auto data_h = Kokkos::create_mirror_view(Kokkos::HostSpace(), data); // this lives on host
-    for(int i = 0; i < data_h.extent(0); ++i)
+    for(size_t i = 0; i < data_h.extent(0); ++i)
     {
       data_h(i) = simd_t{static_cast<double>(i)} * simd_t{static_cast<double>(i)} * simd_t{static_cast<double>(i)};
     }
@@ -96,7 +96,7 @@ Kokkos::View<simd_t *> createDataCBRT(std::string name, int size) {
 Kokkos::View<simd_t *> createDataZeroToSizeNegative(std::string name, int size) {
     Kokkos::View<simd_t *> data(name, size);
     auto data_h = Kokkos::create_mirror_view(Kokkos::HostSpace(), data); // this lives on host
-    for(int i = 0; i < data_h.extent(0); ++i)
+    for(size_t i = 0; i < data_h.extent(0); ++i)
     {
       data_h(i) = -simd_t{static_cast<double>(i)};
     }
@@ -163,6 +163,35 @@ void test_multiplysign(Kokkos::View<simd_t *> data, simd_t sng) {
       });
 }
 
+void test_op_add(Kokkos::View<simd_t *> data, simd_t val) {
+  Kokkos::parallel_for(
+      data.extent(0), KOKKOS_LAMBDA(const int i) {
+        data(i) = data(i) + val;
+      });
+}
+
+void test_op_sub(Kokkos::View<simd_t *> data, simd_t val) {
+  Kokkos::parallel_for(
+      data.extent(0), KOKKOS_LAMBDA(const int i) {
+        data(i) = data(i) - val;
+      });
+}
+
+void test_op_mul(Kokkos::View<simd_t *> data, simd_t val) {
+  Kokkos::parallel_for(
+      data.extent(0), KOKKOS_LAMBDA(const int i) {
+        data(i) = data(i) * val;
+      });
+}
+
+void test_op_div(Kokkos::View<simd_t *> data, simd_t val) {
+  Kokkos::parallel_for(
+      data.extent(0), KOKKOS_LAMBDA(const int i) {
+        data(i) = data(i) / val;
+      });
+}
+
+
 void test_view_result(const std::string &test_name, Kokkos::View<simd_t *> data,
                       double expected) {
   auto data_h = Kokkos::create_mirror_view(data);
@@ -173,7 +202,7 @@ void test_view_result(const std::string &test_name, Kokkos::View<simd_t *> data,
       reinterpret_cast<double *>(data_h.data()),
       data_h.extent(0) * simd_t::size());
 
-  for (int i = 0; i < scalar_view.extent(0); ++i) {
+  for (size_t i = 0; i < scalar_view.extent(0); ++i) {
     EXPECT_DOUBLE_EQ(scalar_view(i), expected)
         << "Failure during " + test_name + " with i = " + std::to_string(i);
   }
@@ -188,7 +217,7 @@ void test_view_result(const std::string &test_name, Kokkos::View<simd_t *> data,
       reinterpret_cast<double *>(data_h.data()),
       data_h.extent(0) * simd_t::size());
 
-  for (int i = 0; i < scalar_view.extent(0); ++i) {
+  for (size_t i = 0; i < scalar_view.extent(0); ++i) {
     EXPECT_DOUBLE_EQ(scalar_view(i), expected[i])
         << "Failure during " + test_name + " with i = " + std::to_string(i);
   }
@@ -308,6 +337,62 @@ TEST(simd_math, test_min) {
   test_view_result("test_min_2", data, expectedData);
 }
 
+TEST(simd_math, test_op_add) {
+  Kokkos::View<simd_t *> data = createDataWithUniqValue("Test View", 8, 4.0);
+
+  test_op_add(data, simd_t{10.0});
+  test_view_result("test_op_add_1", data, 14.0);
+
+  data = createDataZeroToSizePositive("Test View 2", 8);
+  const int expectedSize = 16;
+  double expectedData[expectedSize]= {4.0,4.0,5.0,5.0,6.0,6.0,7.0,7.0,8.0,8.0,9.0,9.0,10.0,10.0,11.0,11.0};
+
+  test_op_add(data, simd_t{4.0});
+  test_view_result("test_op_add_2", data, expectedData);
+}
+
+TEST(simd_math, test_op_sub) {
+  Kokkos::View<simd_t *> data = createDataWithUniqValue("Test View", 8, 4.0);
+
+  test_op_sub(data, simd_t{10.0});
+  test_view_result("test_op_sub_1", data, -6.0);
+
+  data = createDataZeroToSizePositive("Test View 2", 8);
+  const int expectedSize = 16;
+  double expectedData[expectedSize]= {-4.0,-4.0,-3.0,-3.0,-2.0,-2.0,-1.0,-1.0,0.0,0.0,1.0,1.0,2.0,2.0,3.0,3.0};
+
+  test_op_sub(data, simd_t{4.0});
+  test_view_result("test_op_sub_1", data, expectedData);
+}
+
+TEST(simd_math, test_op_mul) {
+  Kokkos::View<simd_t *> data = createDataWithUniqValue("Test View", 8, 4.0);
+
+  test_op_mul(data, simd_t{10.0});
+  test_view_result("test_op_mul_1", data, 40.0);
+
+  data = createDataZeroToSizePositive("Test View 2", 8);
+  const int expectedSize = 16;
+  double expectedData[expectedSize]= {0.0,0.0,4.0,4.0,8.0,8.0,12.0,12.0,16.0,16.0,20.0,20.0,24.0,24.0,28.0,28.0};
+
+  test_op_mul(data, simd_t{4.0});
+  test_view_result("test_op_mul_2", data, expectedData);
+}
+
+TEST(simd_math, test_op_div) {
+  Kokkos::View<simd_t *> data = createDataWithUniqValue("Test View", 8, 4.0);
+
+  test_op_div(data, simd_t{10.0});
+  test_view_result("test_op_div_1", data, 0.4);
+
+  data = createDataZeroToSizePositive("Test View 2", 8);
+  const int expectedSize = 16;
+  double expectedData[expectedSize]= {0.0,0.0,0.25,0.25,0.5,0.5,0.75,0.75,1.0,1.0,1.25,1.25,1.50,1.50,1.75,1.75};
+
+  test_op_div(data, simd_t{4.0});
+  test_view_result("test_op_div_2", data, expectedData);
+}
+
 TEST(simd_math, test_copysign) {
     Kokkos::View<simd_t *> data = createDataZeroToSizePositive("Test View", 8);
 
@@ -362,8 +447,6 @@ TEST(simd_math, test_multiplysign) {
 
     test_multiplysign(data, simd_t{4.0});
     test_view_result("test_multiplysign_7", data, expectedData);
-
-
 }
 
 }  // namespace Test
