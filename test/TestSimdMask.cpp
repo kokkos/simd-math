@@ -50,24 +50,38 @@ namespace Test {
 using simd_t = simd::simd<double, simd::simd_abi::native>;
 using mask_t = simd_t::mask_type;
 
+constexpr int extentArray[14] = {1,      2,      8,       9,      100,
+                                 101,    1000,   1001,    10000,  10001,
+                                 100000, 100001, 1000000, 1000001};
+
+template <typename T>
+bool is_true(const T &mask) {
+  return simd::all_of(mask);
+}
+
+template <typename T>
+bool is_false(const T &mask) {
+  return !simd::all_of(mask) && !simd::any_of(mask);
+}
+
 TEST(simd_mask, simd_mask_basic_api) {
   const mask_t a(true);
   const mask_t b(false);
 
-  EXPECT_TRUE(a.get());
-  EXPECT_FALSE(b.get());
+  EXPECT_TRUE(is_true(a));
+  EXPECT_TRUE(is_false(b));
 
   const auto a_or_b = a || b;
-  EXPECT_TRUE(a_or_b.get());
+  EXPECT_TRUE(is_true(a_or_b));
 
   const auto a_and_b = a && b;
-  EXPECT_FALSE(a_and_b.get());
+  EXPECT_TRUE(is_false(a_and_b));
 
   const auto not_a = !a;
   const auto not_b = !b;
 
-  EXPECT_FALSE(not_a.get());
-  EXPECT_TRUE(not_b.get());
+  EXPECT_TRUE(is_false(not_a));
+  EXPECT_TRUE(is_true(not_b));
 
   EXPECT_TRUE(simd::all_of(a));
   EXPECT_FALSE(simd::all_of(b));
@@ -76,20 +90,19 @@ TEST(simd_mask, simd_mask_basic_api) {
   EXPECT_FALSE(simd::any_of(b));
 }
 
-bool test_is_data_bigger(Kokkos::View<simd_t *> data) {
-  using simd_bool = simd::simd<bool, simd::simd_abi::native>;
-  Kokkos::View<simd_bool *> results("Test results", data.extent(0));
+bool test_is_mask_smaller(Kokkos::View<simd_t *> data) {
+  Kokkos::View<simd_t *> results("Test results", data.extent(0));
 
   simd_t min = 0.0;
   Kokkos::parallel_for(
-      "is_data_bigger", data.extent(0), KOKKOS_LAMBDA(const int i) {
-        const auto a_i   = data(i);
+      "is_mask_smaller", data.extent(0), KOKKOS_LAMBDA(const int i) {
+        const auto a_i        = data(i);
         mask_t is_data_bigger = min < a_i;
-        results(i)       = all_of(is_data_bigger);
+        results(i)            = all_of(is_data_bigger);
       });
 
-  Kokkos::View<bool *> results_scalar((bool *)(results.data()),
-                                      results.extent(0) * simd_bool::size());
+  Kokkos::View<double *> results_scalar((double *)(results.data()),
+                                        results.extent(0) * simd_t::size());
 
   int result = 0;
   Kokkos::parallel_reduce(
@@ -99,9 +112,9 @@ bool test_is_data_bigger(Kokkos::View<simd_t *> data) {
   return result == results_scalar.extent(0);
 }
 
-TEST(simd_mask, simd_mask_less) {
-  constexpr int data_size      = 10 * simd_t::size();
-  constexpr int simd_data_size = data_size / simd_t::size();
+void do_test_simd_mask_smaller(const int viewExtent) {
+  const int data_size      = viewExtent * simd_t::size();
+  const int simd_data_size = viewExtent;
 
   Kokkos::View<double *> a("Test data", data_size);
 
@@ -113,7 +126,13 @@ TEST(simd_mask, simd_mask_less) {
   Kokkos::deep_copy(a, h_a);
 
   Kokkos::View<simd_t *> a_v((simd_t *)(a.data()), simd_data_size);
-  EXPECT_TRUE(test_is_data_bigger(a_v));
+  EXPECT_TRUE(test_is_mask_smaller(a_v));
+}
+
+TEST(simd_mask, simd_mask_smaller) {
+  for (auto extent : extentArray) {
+    do_test_simd_mask_smaller(extent);
+  }
 }
 
 }  // namespace Test
