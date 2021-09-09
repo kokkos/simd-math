@@ -45,7 +45,9 @@
 #include <Kokkos_Core.hpp>
 #include <simd.hpp>
 
-constexpr int extentArray[11] = {1,2,8,9,100,101,1000,1001,10000,10001};
+constexpr int extentArray[14] = {1,2,8,9,100,101,1000,1001,10000,10001,100000,100001,1000000,1000001};
+const int sqrtMaxIndex = 10000;
+const int cbrtMaxIndex = 5000;
 namespace Test {
 
 template <typename ScalarType>
@@ -77,9 +79,11 @@ template<class ValueType>
 Kokkos::View<simd::simd<ValueType, simd::simd_abi::native> *> create_data_sqrt(std::string name, int size) {
     Kokkos::View<simd::simd<ValueType, simd::simd_abi::native> *> data(name, size);
     auto data_h = Kokkos::create_mirror_view(Kokkos::HostSpace(), data); // this lives on host
+    int j = 0; // We don't want a square higher than 10k *10k. After this  we restart the square from 0.
     for(size_t i = 0; i < data_h.extent(0); ++i)
     {
-      data_h(i) = simd::simd<ValueType, simd::simd_abi::native>{static_cast<ValueType>(i)} * simd::simd<ValueType, simd::simd_abi::native>{static_cast<ValueType>(i)};
+      data_h(i) = simd::simd<ValueType, simd::simd_abi::native>{static_cast<ValueType>(j)} * simd::simd<ValueType, simd::simd_abi::native>{static_cast<ValueType>(j)};
+      j >= sqrtMaxIndex ? j = 0 : ++j;
     }
     Kokkos::deep_copy(data, data_h);
 
@@ -90,9 +94,12 @@ template<class ValueType>
 Kokkos::View<simd::simd<ValueType, simd::simd_abi::native> *> create_data_cbrt(std::string name, int size) {
     Kokkos::View<simd::simd<ValueType, simd::simd_abi::native> *> data(name, size);
     auto data_h = Kokkos::create_mirror_view(Kokkos::HostSpace(), data); // this lives on host
+    int j = 0; // We don't want a cbrt higher than 5k * 5k * 5k. After this  we restart the square from 0.
     for(size_t i = 0; i < data_h.extent(0); ++i)
     {
-      data_h(i) = simd::simd<ValueType, simd::simd_abi::native>{static_cast<ValueType>(i)} * simd::simd<ValueType, simd::simd_abi::native>{static_cast<ValueType>(i)} * simd::simd<ValueType, simd::simd_abi::native>{static_cast<ValueType>(i)};
+      data_h(i) = simd::simd<ValueType, simd::simd_abi::native>{static_cast<ValueType>(j)} * simd::simd<ValueType, simd::simd_abi::native>{static_cast<ValueType>(j)} * simd::simd<ValueType, simd::simd_abi::native>{static_cast<ValueType>(j)};
+      j >= cbrtMaxIndex ? j = 0 : ++j;
+
     }
     Kokkos::deep_copy(data, data_h);
 
@@ -298,11 +305,13 @@ void do_test_sqrt(int viewExtent) {
 
     data = create_data_sqrt<ScalarType>("Test View 2", viewExtent);
     ScalarType *expectedData = new ScalarType[expectedSize];
+    int k = 0;
     for(int i = 0; i < viewExtent; ++i) {
 
         for(int j = 0; j < simdSize; ++j) {
-            expectedData[i * simdSize + j] = static_cast<ScalarType>(i);
+            expectedData[i * simdSize + j] = static_cast<ScalarType>(k);
         }
+        k >= sqrtMaxIndex ? k = 0 : ++k;
     }
 
     test_sqrt(data);
@@ -322,12 +331,15 @@ void do_test_cbrt(int viewExtent) {
 
     data = create_data_cbrt<ScalarType>("Test View 2", viewExtent);
     ScalarType *expectedData = new ScalarType[expectedSize];
+    int k = 0;
     for(int i = 0; i < viewExtent; ++i) {
 
         for(int j = 0; j < simdSize; ++j) {
-            expectedData[i * simdSize + j] = static_cast<ScalarType>(i);
+            expectedData[i * simdSize + j] = static_cast<ScalarType>(k);
         }
+        k >= cbrtMaxIndex ? k = 0 : ++k;
     }
+
 
     test_cbrt(data);
     test_view_result("test_cbrt_2", data, expectedData);
@@ -405,15 +417,18 @@ void do_test_max(int viewExtent) {
 
     data = create_data_sqrt<ScalarType>("Test View 2", viewExtent);
     ScalarType *expectedData = new ScalarType[expectedSize];
+    int k = 0;
     for(int i = 0; i < viewExtent; ++i) {
 
         for(int j = 0; j < simdSize; ++j) {
-            if( i < 4) {
+            if( k < 4) {
                 expectedData[i * simdSize + j] = static_cast<ScalarType>(10.0);
             } else {
-                expectedData[i * simdSize + j] = static_cast<ScalarType>(i * i);
+                expectedData[i * simdSize + j] = static_cast<ScalarType>(k * k);
             }
+
         }
+        k >= sqrtMaxIndex ? k = 0 : ++k;
     }
 
     test_max(data, simd_t<ScalarType>{10.0});
@@ -433,15 +448,18 @@ void do_test_min(int viewExtent) {
 
     data = create_data_sqrt<ScalarType>("Test View 2", viewExtent);
     ScalarType *expectedData = new ScalarType[expectedSize];
+    int k = 0;
     for(int i = 0; i < viewExtent; ++i) {
 
         for(int j = 0; j < simdSize; ++j) {
-            if( i < 4) {
-                expectedData[i * simdSize + j] = static_cast<ScalarType>(i * i);
+            if( k < 4) {
+                expectedData[i * simdSize + j] = static_cast<ScalarType>(k * k);
             } else {
                 expectedData[i * simdSize + j] = static_cast<ScalarType>(10.0);
             }
         }
+
+        k >= sqrtMaxIndex ? k = 0 : ++k;
     }
 
     test_min(data, simd_t<ScalarType>{10.0});
