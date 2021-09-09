@@ -437,6 +437,172 @@ void do_test_min() {
     test_view_result("test_min_2", data, expectedData);
 }
 
+template<typename ScalarType>
+void do_test_op_add() {
+    const int simdSize = simd::simd<ScalarType, simd::simd_abi::native>::size();
+    const int viewExtent = 8;
+    const int expectedSize = viewExtent *  simd::simd<ScalarType, simd::simd_abi::native>::size();
+
+    auto data = create_data_with_uniq_value<ScalarType>("Test View", viewExtent, 4.0);
+
+    test_op_add(data, simd_t<ScalarType>{10.0});
+    test_view_result("test_op_add_1", data, static_cast<ScalarType>(14.0));
+
+    data = create_data_zero_to_size_positive<ScalarType>("Test View 2", viewExtent);
+    ScalarType expectedData[expectedSize];
+    for(int i = 0; i < viewExtent; ++i) {
+        for(int j = 0; j < simdSize; ++j) {
+            expectedData[i * simdSize + j] = static_cast<ScalarType>(4.0 + i);
+        }
+    }
+
+    test_op_add(data, simd_t<ScalarType>{4.0});
+    test_view_result("test_op_add_2", data, expectedData);
+}
+
+template<typename ScalarType>
+void do_test_op_sub() {
+    const int simdSize = simd::simd<ScalarType, simd::simd_abi::native>::size();
+    const int viewExtent = 8;
+    const int expectedSize = viewExtent *  simd::simd<ScalarType, simd::simd_abi::native>::size();
+
+    auto data = create_data_with_uniq_value<ScalarType>("Test View", viewExtent, 4.0);
+
+    test_op_sub(data, simd_t<ScalarType>{10.0});
+    test_view_result("test_op_sub_1", data, static_cast<ScalarType>(-6.0));
+
+    data = create_data_zero_to_size_positive<ScalarType>("Test View 2", viewExtent);
+    ScalarType expectedData[expectedSize];
+    for(int i = 0; i < viewExtent; ++i) {
+        for(int j = 0; j < simdSize; ++j) {
+            expectedData[i * simdSize + j] = static_cast<ScalarType>(-4.0 + i);
+        }
+    }
+
+    test_op_sub(data, simd_t<ScalarType>{4.0});
+    test_view_result("test_op_sub_1", data, expectedData);
+}
+
+template<typename ScalarType>
+void do_test_op_mul() {
+    const int simdSize = simd::simd<ScalarType, simd::simd_abi::native>::size();
+    const int viewExtent = 8;
+    const int expectedSize = viewExtent *  simd::simd<ScalarType, simd::simd_abi::native>::size();
+
+    auto data = create_data_with_uniq_value<ScalarType>("Test View", viewExtent, 4.0);
+
+    test_op_mul(data, simd_t<ScalarType>{10.0});
+    test_view_result("test_op_mul_1", data, static_cast<ScalarType>(40.0));
+
+    data = create_data_zero_to_size_positive<ScalarType>("Test View 2", viewExtent);
+    ScalarType expectedData[expectedSize];
+    for(int i = 0; i < viewExtent; ++i) {
+        for(int j = 0; j < simdSize; ++j) {
+            expectedData[i * simdSize + j] = static_cast<ScalarType>(4.0 * i);
+        }
+    }
+
+    test_op_mul(data, simd_t<ScalarType>{4.0});
+    test_view_result("test_op_mul_2", data, expectedData);
+}
+
+template<typename ScalarType>
+void do_test_op_div() {
+    const int simdSize = simd::simd<ScalarType, simd::simd_abi::native>::size();
+    const int viewExtent = 8;
+    const int expectedSize = viewExtent *  simd::simd<ScalarType, simd::simd_abi::native>::size();
+
+    auto data = create_data_with_uniq_value<ScalarType>("Test View", viewExtent, 4.0);
+
+    test_op_div(data, simd_t<ScalarType>{10.0});
+    test_view_result("test_op_div_1", data, static_cast<ScalarType>(0.4));
+
+    data = create_data_zero_to_size_positive<ScalarType>("Test View 2", viewExtent);
+    ScalarType expectedData[expectedSize];
+    for(int i = 0; i < viewExtent; ++i) {
+        for(int j = 0; j < simdSize; ++j) {
+            expectedData[i * simdSize + j] = static_cast<ScalarType>(i / 4.0);
+        }
+    }
+
+    test_op_div(data, simd_t<ScalarType>{4.0});
+    test_view_result("test_op_div_2", data, expectedData);
+}
+
+template<typename ScalarType>
+void do_test_copysign() {
+    const int simdSize = simd::simd<ScalarType, simd::simd_abi::native>::size();
+    const int viewExtent = 8;
+    const int expectedSize = viewExtent *  simd::simd<ScalarType, simd::simd_abi::native>::size();
+
+    auto data = create_data_zero_to_size_positive<ScalarType>("Test View", viewExtent);
+    test_copysign(data, simd_t<ScalarType>{2.0});
+    ScalarType expectedData[expectedSize];
+    for(int i = 0; i < viewExtent; ++i) {
+
+        for(int j = 0; j < simdSize; ++j) {
+            expectedData[i * simdSize + j] = static_cast<ScalarType>(i);
+        }
+    }
+    test_view_result("test_copysign_1", data, expectedData);
+
+    test_copysign(data, simd_t<ScalarType>{-2.0});
+    for(int i = 0; i < viewExtent * expectedSize; ++i) {
+        expectedData[i] = -expectedData[i];
+    }
+    test_view_result("test_copysign_2", data, expectedData);
+
+    test_copysign(data, simd_t<ScalarType>{4.0});
+    for(int i = 0; i < viewExtent * expectedSize; ++i) {
+        expectedData[i] = -expectedData[i];
+    }
+    test_view_result("test_copysign_3", data, expectedData);
+}
+
+template<typename ScalarType>
+void do_test_multiplysign() {
+    const int simdSize = simd::simd<ScalarType, simd::simd_abi::native>::size();
+    const int viewExtent = 8;
+    const int expectedSize = viewExtent *  simd::simd<ScalarType, simd::simd_abi::native>::size();
+
+    auto data = create_data_with_uniq_value<ScalarType>("Test View", viewExtent, 4.0);
+
+    test_multiplysign(data, simd_t<ScalarType>{2.0});
+    test_view_result("test_multiplysign_1", data, static_cast<ScalarType>(4.0));
+
+    test_multiplysign(data, simd_t<ScalarType>{-2.0});
+    test_view_result("test_multiplysign_2", data, static_cast<ScalarType>(-4.0));
+
+    test_multiplysign(data, simd_t<ScalarType>{2.0});
+    test_view_result("test_multiplysign_3", data, static_cast<ScalarType>(-4.0));
+
+    data = create_data_zero_to_size_positive<ScalarType>("Test View", viewExtent);
+    test_multiplysign(data, simd_t<ScalarType>{2.0});
+    ScalarType expectedData[expectedSize];
+    for(int i = 0; i < viewExtent; ++i) {
+
+        for(int j = 0; j < simdSize; ++j) {
+            expectedData[i * simdSize + j] = static_cast<ScalarType>(i);
+        }
+    }
+    test_view_result("test_multiplysign_4", data, expectedData);
+
+    test_multiplysign(data, simd_t<ScalarType>{-2.0});
+    for(int i = 0; i < viewExtent * expectedSize; ++i) {
+        expectedData[i] = -expectedData[i];
+    }
+    test_view_result("test_multiplysign_5", data, expectedData);
+
+    test_multiplysign(data, simd_t<ScalarType>{-4.0});
+    for(int i = 0; i < viewExtent * expectedSize; ++i) {
+        expectedData[i] = -expectedData[i];
+    }
+    test_view_result("test_multiplysign_6", data, expectedData);
+
+    test_multiplysign(data, simd_t<ScalarType>{4.0});
+    test_view_result("test_multiplysign_7", data, expectedData);
+}
+
 TEST(simd_math, test_abs) {
     do_test_abs<double>();
     do_test_abs<float>();
@@ -473,115 +639,33 @@ TEST(simd_math, test_min) {
 }
 
 TEST(simd_math, test_op_add) {
-  Kokkos::View<simd_t<double> *> data = create_data_with_uniq_value<double>("Test View", 8, 4.0);
-
-  test_op_add(data, simd_t<double>{10.0});
-  test_view_result("test_op_add_1", data, 14.0);
-
-  data = create_data_zero_to_size_positive<double>("Test View 2", 8);
-  const int expectedSize = 16;
-  double expectedData[expectedSize]= {4.0,4.0,5.0,5.0,6.0,6.0,7.0,7.0,8.0,8.0,9.0,9.0,10.0,10.0,11.0,11.0};
-
-  test_op_add(data, simd_t<double>{4.0});
-  test_view_result("test_op_add_2", data, expectedData);
+  do_test_op_add<double>();
+  do_test_op_add<float>();
 }
 
 TEST(simd_math, test_op_sub) {
-  Kokkos::View<simd_t<double> *> data = create_data_with_uniq_value<double>("Test View", 8, 4.0);
-
-  test_op_sub(data, simd_t<double>{10.0});
-  test_view_result("test_op_sub_1", data, -6.0);
-
-  data = create_data_zero_to_size_positive<double>("Test View 2", 8);
-  const int expectedSize = 16;
-  double expectedData[expectedSize]= {-4.0,-4.0,-3.0,-3.0,-2.0,-2.0,-1.0,-1.0,0.0,0.0,1.0,1.0,2.0,2.0,3.0,3.0};
-
-  test_op_sub(data, simd_t<double>{4.0});
-  test_view_result("test_op_sub_1", data, expectedData);
+  do_test_op_sub<double>();
+  do_test_op_sub<float>();
 }
 
 TEST(simd_math, test_op_mul) {
-  Kokkos::View<simd_t<double> *> data = create_data_with_uniq_value<double>("Test View", 8, 4.0);
-
-  test_op_mul(data, simd_t<double>{10.0});
-  test_view_result("test_op_mul_1", data, 40.0);
-
-  data = create_data_zero_to_size_positive<double>("Test View 2", 8);
-  const int expectedSize = 16;
-  double expectedData[expectedSize]= {0.0,0.0,4.0,4.0,8.0,8.0,12.0,12.0,16.0,16.0,20.0,20.0,24.0,24.0,28.0,28.0};
-
-  test_op_mul(data, simd_t<double>{4.0});
-  test_view_result("test_op_mul_2", data, expectedData);
+  do_test_op_mul<double>();
+  do_test_op_mul<float>();
 }
 
 TEST(simd_math, test_op_div) {
-  Kokkos::View<simd_t<double> *> data = create_data_with_uniq_value<double>("Test View", 8, 4.0);
-
-  test_op_div(data, simd_t<double>{10.0});
-  test_view_result("test_op_div_1", data, 0.4);
-
-  data = create_data_zero_to_size_positive<double>("Test View 2", 8);
-  const int expectedSize = 16;
-  double expectedData[expectedSize]= {0.0,0.0,0.25,0.25,0.5,0.5,0.75,0.75,1.0,1.0,1.25,1.25,1.50,1.50,1.75,1.75};
-
-  test_op_div(data, simd_t<double>{4.0});
-  test_view_result("test_op_div_2", data, expectedData);
+  do_test_op_div<double>();
+  do_test_op_div<float>();
 }
 
 TEST(simd_math, test_copysign) {
-    Kokkos::View<simd_t<double> *> data = create_data_zero_to_size_positive<double>("Test View", 8);
-
-    const int expectedSize = 16; // 8 * 2
-    test_copysign(data, simd_t<double>{2.0});
-    double expectedData[expectedSize]= {0.0,0.0,1.0,1.0,2.0,2.0,3.0,3.0,4.0,4.0,5.0,5.0,6.0,6.0,7.0,7.0};
-    test_view_result("test_copysign_1", data, expectedData);
-
-    test_copysign(data, simd_t<double>{-2.0});
-    for(int i = 0; i < expectedSize; ++i) {
-       expectedData[i] = -expectedData[i];
-    }
-    test_view_result("test_copysign_2", data, expectedData);
-
-    test_copysign(data, simd_t<double>{4.0});
-    for(int i = 0; i < expectedSize; ++i) {
-       expectedData[i] = -expectedData[i];
-    }
-    test_view_result("test_copysign_3", data, expectedData);
+    do_test_copysign<double>();
+    do_test_copysign<float>();
 }
 
 TEST(simd_math, test_multiplysign) {
-    Kokkos::View<simd_t<double> *> data("Test View", 8);
-    Kokkos::deep_copy(data, simd_t<double>(4.0));
-
-    test_multiplysign(data, simd_t<double>{2.0});
-    test_view_result("test_multiplysign_1", data, 4.0);
-
-    test_multiplysign(data, simd_t<double>{-2.0});
-    test_view_result("test_multiplysign_2", data, -4.0);
-
-    test_multiplysign(data, simd_t<double>{2.0});
-    test_view_result("test_multiplysign_3", data, -4.0);
-
-    data = create_data_zero_to_size_positive<double>("Test View", 8);
-    const int expectedSize = 16; // 8 * 2
-    test_multiplysign(data, simd_t<double>{2.0});
-    double expectedData[expectedSize]= {0.0,0.0,1.0,1.0,2.0,2.0,3.0,3.0,4.0,4.0,5.0,5.0,6.0,6.0,7.0,7.0};
-    test_view_result("test_multiplysign_4", data, expectedData);
-
-    test_multiplysign(data, simd_t<double>{-2.0});
-    for(int i = 0; i < expectedSize; ++i) {
-       expectedData[i] = -expectedData[i];
-    }
-    test_view_result("test_multiplysign_5", data, expectedData);
-
-    test_multiplysign(data, simd_t<double>{-4.0});
-    for(int i = 0; i < expectedSize; ++i) {
-       expectedData[i] = -expectedData[i];
-    }
-    test_view_result("test_multiplysign_6", data, expectedData);
-
-    test_multiplysign(data, simd_t<double>{4.0});
-    test_view_result("test_multiplysign_7", data, expectedData);
+    do_test_multiplysign<double>();
+    do_test_multiplysign<float>();
 }
 
 }  // namespace Test
