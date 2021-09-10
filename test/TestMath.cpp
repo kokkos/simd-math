@@ -48,27 +48,85 @@
 constexpr int extentArray[14] = {1,2,8,9,100,101,1000,1001,10000,10001,100000,100001,1000000,1000001};
 const int sqrtMaxIndex = 10000;
 const int cbrtMaxIndex = 5000;
+enum SIMD_CONSTRUCTOR{
+  SIMD_CONSTRUCTOR_SCALAR  = 0,
+  SIMD_CONSTRUCTOR_MUTLI_SCALAR  = 1,
+  SIMD_CONSTRUCTOR_MUTLI_PTR_FLAG  = 2,
+  SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE  = 3,
+#ifdef __SSE2__
+  SIMD_CONSTRUCTOR_MUTLI_SSE2  = 4,
+#endif
+};
+
 namespace Test {
 
 template <typename ScalarType>
 using simd_t =    simd::simd<ScalarType, simd::simd_abi::native>;
 //using mask_t = simd_t<double>::mask_type;
 
+// Method to create simd
+template<typename ScalarType>
+simd_t<ScalarType> createSimd(SIMD_CONSTRUCTOR constructor, int i);
+
+template<>
+simd_t<float> createSimd<float>(SIMD_CONSTRUCTOR constructor, int i) {
+    switch (constructor) {
+      case SIMD_CONSTRUCTOR_SCALAR:
+        return simd_t<float>{static_cast<float>(i)};
+      case SIMD_CONSTRUCTOR_MUTLI_SCALAR:
+        return simd_t<float>{static_cast<float>(i), static_cast<float>(i+1), static_cast<float>(i+2), static_cast<float>(i+3)};
+      case SIMD_CONSTRUCTOR_MUTLI_PTR_FLAG: {
+        float tab[4] = {static_cast<float>(i), static_cast<float>(i+1), static_cast<float>(i+2), static_cast<float>(i+3)};
+        return simd_t<float>(tab, 4.);
+        }
+      case SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE:{
+        float tab[4] = {static_cast<float>(i), static_cast<float>(i+1), static_cast<float>(i+2), static_cast<float>(i+3)};
+        return simd_t<float>(tab, 1);
+      }
+#ifdef __SSE2__
+      case SIMD_CONSTRUCTOR_MUTLI_SSE2:
+        return simd_t<float>({static_cast<float>(i), static_cast<float>(i+1), static_cast<float>(i+2), static_cast<float>(i+3)});
+#endif
+    }
+}
+
+template<>
+simd_t<double> createSimd<double>(SIMD_CONSTRUCTOR constructor, int i) {
+    switch (constructor) {
+      case SIMD_CONSTRUCTOR_SCALAR:
+        return simd_t<double>{static_cast<double>(i)};
+      case SIMD_CONSTRUCTOR_MUTLI_SCALAR:
+        return simd_t<double>{static_cast<double>(i), static_cast<double>(i+1)};
+      case SIMD_CONSTRUCTOR_MUTLI_PTR_FLAG: {
+        double tab[4] = {static_cast<double>(i), static_cast<double>(i+1)};
+        return simd_t<double>(tab, 4.);
+        }
+      case SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE:{
+        double tab[4] = {static_cast<double>(i), static_cast<double>(i+1)};
+        return simd_t<double>(tab, 1);
+      }
+#ifdef __SSE2__
+      case SIMD_CONSTRUCTOR_MUTLI_SSE2:
+        return simd_t<double>({static_cast<double>(i), static_cast<double>(i+1)});
+#endif
+    }
+}
+
 // Methods to create data
 template<class ValueType>
-Kokkos::View<simd::simd<ValueType, simd::simd_abi::native> *> create_data_with_uniq_value(std::string name, int size, ValueType value) {
-    Kokkos::View<simd::simd<ValueType, simd::simd_abi::native> *> data(name, size);
-    Kokkos::deep_copy(data, simd::simd<ValueType, simd::simd_abi::native>(value));
+Kokkos::View<simd_t<ValueType> *> create_data_with_uniq_value(std::string name, int size, ValueType value) {
+    Kokkos::View<simd_t<ValueType> *> data(name, size);
+    Kokkos::deep_copy(data, simd_t<ValueType>(value));
     return data;
 }
 
 template<class ValueType>
-Kokkos::View<simd::simd<ValueType, simd::simd_abi::native> *> create_data_zero_to_size_positive(std::string name, int size) {
-    Kokkos::View<simd::simd<ValueType, simd::simd_abi::native> *> data(name, size);
+Kokkos::View<simd_t<ValueType> *> create_data_zero_to_size_positive(std::string name, int size, SIMD_CONSTRUCTOR constructor = SIMD_CONSTRUCTOR_SCALAR) {
+    Kokkos::View<simd_t<ValueType> *> data(name, size);
     auto data_h = Kokkos::create_mirror_view(Kokkos::HostSpace(), data); // this lives on host
     for(size_t i = 0; i < data_h.extent(0); ++i)
     {
-      data_h(i) = simd::simd<ValueType, simd::simd_abi::native>{static_cast<ValueType>(i)};
+        data_h(i) = createSimd<ValueType>(constructor,i);
     }
     Kokkos::deep_copy(data, data_h);
 
@@ -76,13 +134,26 @@ Kokkos::View<simd::simd<ValueType, simd::simd_abi::native> *> create_data_zero_t
 }
 
 template<class ValueType>
-Kokkos::View<simd::simd<ValueType, simd::simd_abi::native> *> create_data_sqrt(std::string name, int size) {
-    Kokkos::View<simd::simd<ValueType, simd::simd_abi::native> *> data(name, size);
+Kokkos::View<simd_t<ValueType> *> create_data_zero_to_size_negative(std::string name, int size, SIMD_CONSTRUCTOR constructor = SIMD_CONSTRUCTOR_SCALAR) {
+    Kokkos::View<simd_t<ValueType> *> data(name, size);
+    auto data_h = Kokkos::create_mirror_view(Kokkos::HostSpace(), data); // this lives on host
+    for(size_t i = 0; i < data_h.extent(0); ++i)
+    {
+      data_h(i) = -createSimd<ValueType>(constructor,i);
+    }
+    Kokkos::deep_copy(data, data_h);
+
+    return data;
+}
+
+template<class ValueType>
+Kokkos::View<simd_t<ValueType> *> create_data_sqrt(std::string name, int size) {
+    Kokkos::View<simd_t<ValueType> *> data(name, size);
     auto data_h = Kokkos::create_mirror_view(Kokkos::HostSpace(), data); // this lives on host
     int j = 0; // We don't want a square higher than 10k *10k. After this  we restart the square from 0.
     for(size_t i = 0; i < data_h.extent(0); ++i)
     {
-      data_h(i) = simd::simd<ValueType, simd::simd_abi::native>{static_cast<ValueType>(j)} * simd::simd<ValueType, simd::simd_abi::native>{static_cast<ValueType>(j)};
+      data_h(i) = simd_t<ValueType>{static_cast<ValueType>(j)} * simd_t<ValueType>{static_cast<ValueType>(j)};
       j >= sqrtMaxIndex ? j = 0 : ++j;
     }
     Kokkos::deep_copy(data, data_h);
@@ -91,13 +162,13 @@ Kokkos::View<simd::simd<ValueType, simd::simd_abi::native> *> create_data_sqrt(s
 }
 
 template<class ValueType>
-Kokkos::View<simd::simd<ValueType, simd::simd_abi::native> *> create_data_cbrt(std::string name, int size) {
-    Kokkos::View<simd::simd<ValueType, simd::simd_abi::native> *> data(name, size);
+Kokkos::View<simd_t<ValueType> *> create_data_cbrt(std::string name, int size) {
+    Kokkos::View<simd_t<ValueType> *> data(name, size);
     auto data_h = Kokkos::create_mirror_view(Kokkos::HostSpace(), data); // this lives on host
     int j = 0; // We don't want a cbrt higher than 5k * 5k * 5k. After this  we restart the square from 0.
     for(size_t i = 0; i < data_h.extent(0); ++i)
     {
-      data_h(i) = simd::simd<ValueType, simd::simd_abi::native>{static_cast<ValueType>(j)} * simd::simd<ValueType, simd::simd_abi::native>{static_cast<ValueType>(j)} * simd::simd<ValueType, simd::simd_abi::native>{static_cast<ValueType>(j)};
+      data_h(i) = simd_t<ValueType>{static_cast<ValueType>(j)} * simd_t<ValueType>{static_cast<ValueType>(j)} * simd_t<ValueType>{static_cast<ValueType>(j)};
       j >= cbrtMaxIndex ? j = 0 : ++j;
 
     }
@@ -106,20 +177,21 @@ Kokkos::View<simd::simd<ValueType, simd::simd_abi::native> *> create_data_cbrt(s
     return data;
 }
 
-template<class ValueType>
-Kokkos::View<simd_t<ValueType> *> create_data_zero_to_size_negative(std::string name, int size) {
-    Kokkos::View<simd_t<ValueType> *> data(name, size);
-    auto data_h = Kokkos::create_mirror_view(Kokkos::HostSpace(), data); // this lives on host
-    for(size_t i = 0; i < data_h.extent(0); ++i)
-    {
-      data_h(i) = -simd_t<ValueType>{static_cast<ValueType>(i)};
-    }
-    Kokkos::deep_copy(data, data_h);
+// Methods for testing
 
-    return data;
+template<typename ScalarType>
+void compare(const std::string &test_name, int i, ScalarType value, ScalarType expected);
+
+template<>
+void compare(const std::string &test_name, int i, double value, double expected){
+    EXPECT_DOUBLE_EQ(value, expected) << "Failure during " + test_name + " with i = " + std::to_string(i);;
 }
 
-// Methods for testing
+template<>
+void compare(const std::string &test_name, int i, float value, float expected){
+    EXPECT_FLOAT_EQ(value, expected) << "Failure during " + test_name + " with i = " + std::to_string(i);;
+}
+
 template<class ScalarType>
 void test_abs(Kokkos::View<simd_t<ScalarType> *> data) {
   Kokkos::parallel_for(
@@ -157,7 +229,7 @@ void test_fma(Kokkos::View<simd_t<ScalarType> *> data, simd_t<ScalarType> val_1,
 }
 
 template<typename ScalarType>
-void test_max(Kokkos::View<simd::simd<ScalarType, simd::simd_abi::native> *> data, simd::simd<ScalarType, simd::simd_abi::native> val) {
+void test_max(Kokkos::View<simd_t<ScalarType> *> data, simd_t<ScalarType> val) {
   Kokkos::parallel_for(
       data.extent(0),
       KOKKOS_LAMBDA(const int i) { data(i) = simd::max(data(i), val); });
@@ -219,20 +291,7 @@ void test_op_div(Kokkos::View<simd_t<ScalarType> *> data, simd_t<ScalarType> val
 }
 
 template<typename ScalarType>
-void compare(const std::string &test_name, int i, ScalarType value, ScalarType expected);
-
-template<>
-void compare(const std::string &test_name, int i, double value, double expected){
-    EXPECT_DOUBLE_EQ(value, expected) << "Failure during " + test_name + " with i = " + std::to_string(i);;
-}
-
-template<>
-void compare(const std::string &test_name, int i, float value, float expected){
-    EXPECT_FLOAT_EQ(value, expected) << "Failure during " + test_name + " with i = " + std::to_string(i);;
-}
-
-template<typename ScalarType>
-void test_view_result(const std::string &test_name, Kokkos::View<simd::simd<ScalarType, simd::simd_abi::native> *> data,
+void test_view_result(const std::string &test_name, Kokkos::View<simd_t<ScalarType> *> data,
                       ScalarType expected) {
   auto data_h = Kokkos::create_mirror_view(data);
   Kokkos::deep_copy(data_h, data);
@@ -240,7 +299,7 @@ void test_view_result(const std::string &test_name, Kokkos::View<simd::simd<Scal
 
   Kokkos::View<ScalarType *, Kokkos::HostSpace> scalar_view(
       reinterpret_cast<ScalarType *>(data_h.data()),
-      data_h.extent(0) * simd::simd<ScalarType, simd::simd_abi::native>::size());
+      data_h.extent(0) * simd_t<ScalarType>::size());
 
   for (size_t i = 0; i < scalar_view.extent(0); ++i) {
     compare(test_name, i, scalar_view(i), static_cast<ScalarType>(expected));
@@ -248,45 +307,70 @@ void test_view_result(const std::string &test_name, Kokkos::View<simd::simd<Scal
 }
 
 template<typename ScalarType>
-void test_view_result(const std::string &test_name, Kokkos::View<simd::simd<ScalarType, simd::simd_abi::native> *> data,
+void test_view_result(const std::string &test_name, Kokkos::View<simd_t<ScalarType> *> data,
                       ScalarType *expected) {
   auto data_h = Kokkos::create_mirror_view(data);
   Kokkos::deep_copy(data_h, data);
 
   Kokkos::View<ScalarType *, Kokkos::HostSpace> scalar_view(
       reinterpret_cast<ScalarType *>(data_h.data()),
-      data_h.extent(0) * simd::simd<ScalarType, simd::simd_abi::native>::size());
+      data_h.extent(0) * simd_t<ScalarType>::size());
 
   for (size_t i = 0; i < scalar_view.extent(0); ++i) {
     compare(test_name, i, scalar_view(i), static_cast<ScalarType>(expected[i]));
   }
 }
 
+template<class ScalarType>
+void do_test_constructor(SIMD_CONSTRUCTOR constructor, int viewExtent) {
+    const int simdSize = simd_t<ScalarType>::size();
+    const int expectedSize = viewExtent *  simd_t<ScalarType>::size();
+    auto data = create_data_zero_to_size_positive<ScalarType>("Test View", viewExtent, constructor);
+
+    ScalarType *expectedData = new ScalarType[expectedSize];
+    for(int i = 0; i < viewExtent; ++i) {
+
+        for(int j = 0; j < simdSize; ++j) {
+            if(constructor == SIMD_CONSTRUCTOR_SCALAR) {
+                expectedData[i * simdSize + j] = static_cast<ScalarType>(i);
+            } else {
+                expectedData[i * simdSize + j] = static_cast<ScalarType>(i + j);
+            }
+        }
+    }
+    test_view_result("test_test_constructor_1", data, expectedData);
+    delete[] expectedData;
+}
+
 template<typename ScalarType>
-void do_test_abs(int viewExtent) {
-    const int simdSize = simd::simd<ScalarType, simd::simd_abi::native>::size();
-    const int expectedSize = viewExtent *  simd::simd<ScalarType, simd::simd_abi::native>::size();
+void do_test_abs(SIMD_CONSTRUCTOR constructor, int viewExtent) {
+    const int simdSize = simd_t<ScalarType>::size();
+    const int expectedSize = viewExtent *  simd_t<ScalarType>::size();
 
     auto data = create_data_with_uniq_value<ScalarType>("Test View", viewExtent, -4);
 
     test_abs(data);
     test_view_result("test_abs_1", data, static_cast<ScalarType>(4.0));
 
-    data = create_data_zero_to_size_positive<ScalarType>("Test View 2", viewExtent);
+    data = create_data_zero_to_size_positive<ScalarType>("Test View 2", viewExtent, constructor);
 
 
     ScalarType *expectedData = new ScalarType[expectedSize];
     for(int i = 0; i < viewExtent; ++i) {
 
         for(int j = 0; j < simdSize; ++j) {
-            expectedData[i * simdSize + j] = static_cast<ScalarType>(i);
+            if(constructor == SIMD_CONSTRUCTOR_SCALAR) {
+                expectedData[i * simdSize + j] = static_cast<ScalarType>(i);
+            } else {
+                expectedData[i * simdSize + j] = static_cast<ScalarType>(i + j);
+            }
         }
     }
 
     test_abs(data);
     test_view_result("test_abs_2", data, expectedData);
 
-    data = create_data_zero_to_size_negative<ScalarType>("Test View 3", viewExtent);
+    data = create_data_zero_to_size_negative<ScalarType>("Test View 3", viewExtent, constructor);
 
     test_abs(data);
     test_view_result("test_abs_3", data, expectedData);
@@ -295,8 +379,8 @@ void do_test_abs(int viewExtent) {
 
 template<typename ScalarType>
 void do_test_sqrt(int viewExtent) {
-    const int simdSize = simd::simd<ScalarType, simd::simd_abi::native>::size();
-    const int expectedSize = viewExtent *  simd::simd<ScalarType, simd::simd_abi::native>::size();
+    const int simdSize = simd_t<ScalarType>::size();
+    const int expectedSize = viewExtent *  simd_t<ScalarType>::size();
 
     auto data = create_data_with_uniq_value<ScalarType>("Test View", viewExtent, 16.0);
 
@@ -321,8 +405,8 @@ void do_test_sqrt(int viewExtent) {
 
 template<typename ScalarType>
 void do_test_cbrt(int viewExtent) {
-    const int simdSize = simd::simd<ScalarType, simd::simd_abi::native>::size();
-    const int expectedSize = viewExtent *  simd::simd<ScalarType, simd::simd_abi::native>::size();
+    const int simdSize = simd_t<ScalarType>::size();
+    const int expectedSize = viewExtent *  simd_t<ScalarType>::size();
 
     auto data = create_data_with_uniq_value<ScalarType>("Test View", viewExtent, 27.0);
 
@@ -348,8 +432,8 @@ void do_test_cbrt(int viewExtent) {
 
 template<typename ScalarType>
 void do_test_exp(int viewExtent) {
-    const int simdSize = simd::simd<ScalarType, simd::simd_abi::native>::size();
-    const int expectedSize = viewExtent *  simd::simd<ScalarType, simd::simd_abi::native>::size();
+    const int simdSize = simd_t<ScalarType>::size();
+    const int expectedSize = viewExtent *  simd_t<ScalarType>::size();
 
     auto data = create_data_with_uniq_value<ScalarType>("Test View", viewExtent, 1.0);
 
@@ -372,8 +456,8 @@ void do_test_exp(int viewExtent) {
 
 template<typename ScalarType>
 void do_test_fma(int viewExtent) {
-    const int simdSize = simd::simd<ScalarType, simd::simd_abi::native>::size();
-    const int expectedSize = viewExtent *  simd::simd<ScalarType, simd::simd_abi::native>::size();
+    const int simdSize = simd_t<ScalarType>::size();
+    const int expectedSize = viewExtent *  simd_t<ScalarType>::size();
 
     auto data = create_data_with_uniq_value<ScalarType>("Test View", viewExtent, -4.0);
 
@@ -407,8 +491,8 @@ void do_test_fma(int viewExtent) {
 
 template<typename ScalarType>
 void do_test_max(int viewExtent) {
-    const int simdSize = simd::simd<ScalarType, simd::simd_abi::native>::size();
-    const int expectedSize = viewExtent *  simd::simd<ScalarType, simd::simd_abi::native>::size();
+    const int simdSize = simd_t<ScalarType>::size();
+    const int expectedSize = viewExtent *  simd_t<ScalarType>::size();
 
     auto data = create_data_with_uniq_value<ScalarType>("Test View", viewExtent, 1.0);
 
@@ -438,8 +522,8 @@ void do_test_max(int viewExtent) {
 
 template<typename ScalarType>
 void do_test_min(int viewExtent) {
-    const int simdSize = simd::simd<ScalarType, simd::simd_abi::native>::size();
-    const int expectedSize = viewExtent *  simd::simd<ScalarType, simd::simd_abi::native>::size();
+    const int simdSize = simd_t<ScalarType>::size();
+    const int expectedSize = viewExtent *  simd_t<ScalarType>::size();
 
     auto data = create_data_with_uniq_value<ScalarType>("Test View", viewExtent, 4.0);
 
@@ -469,8 +553,8 @@ void do_test_min(int viewExtent) {
 
 template<typename ScalarType>
 void do_test_op_add(int viewExtent) {
-    const int simdSize = simd::simd<ScalarType, simd::simd_abi::native>::size();
-    const int expectedSize = viewExtent *  simd::simd<ScalarType, simd::simd_abi::native>::size();
+    const int simdSize = simd_t<ScalarType>::size();
+    const int expectedSize = viewExtent *  simd_t<ScalarType>::size();
 
     auto data = create_data_with_uniq_value<ScalarType>("Test View", viewExtent, 4.0);
     test_op_add(data, simd_t<ScalarType>{10.0});
@@ -491,8 +575,8 @@ void do_test_op_add(int viewExtent) {
 
 template<typename ScalarType>
 void do_test_op_sub(int viewExtent) {
-    const int simdSize = simd::simd<ScalarType, simd::simd_abi::native>::size();
-    const int expectedSize = viewExtent *  simd::simd<ScalarType, simd::simd_abi::native>::size();
+    const int simdSize = simd_t<ScalarType>::size();
+    const int expectedSize = viewExtent *  simd_t<ScalarType>::size();
 
     auto data = create_data_with_uniq_value<ScalarType>("Test View", viewExtent, 4.0);
 
@@ -514,8 +598,8 @@ void do_test_op_sub(int viewExtent) {
 
 template<typename ScalarType>
 void do_test_op_mul(int viewExtent) {
-    const int simdSize = simd::simd<ScalarType, simd::simd_abi::native>::size();
-    const int expectedSize = viewExtent *  simd::simd<ScalarType, simd::simd_abi::native>::size();
+    const int simdSize = simd_t<ScalarType>::size();
+    const int expectedSize = viewExtent *  simd_t<ScalarType>::size();
 
     auto data = create_data_with_uniq_value<ScalarType>("Test View", viewExtent, 4.0);
 
@@ -537,8 +621,8 @@ void do_test_op_mul(int viewExtent) {
 
 template<typename ScalarType>
 void do_test_op_div(int viewExtent) {
-    const int simdSize = simd::simd<ScalarType, simd::simd_abi::native>::size();
-    const int expectedSize = viewExtent *  simd::simd<ScalarType, simd::simd_abi::native>::size();
+    const int simdSize = simd_t<ScalarType>::size();
+    const int expectedSize = viewExtent *  simd_t<ScalarType>::size();
 
     auto data = create_data_with_uniq_value<ScalarType>("Test View", viewExtent, 4.0);
 
@@ -560,8 +644,8 @@ void do_test_op_div(int viewExtent) {
 
 template<typename ScalarType>
 void do_test_copysign(int viewExtent) {
-    const int simdSize = simd::simd<ScalarType, simd::simd_abi::native>::size();
-    const int expectedSize = viewExtent *  simd::simd<ScalarType, simd::simd_abi::native>::size();
+    const int simdSize = simd_t<ScalarType>::size();
+    const int expectedSize = viewExtent *  simd_t<ScalarType>::size();
 
     auto data = create_data_zero_to_size_positive<ScalarType>("Test View", viewExtent);
     test_copysign(data, simd_t<ScalarType>{2.0});
@@ -590,8 +674,8 @@ void do_test_copysign(int viewExtent) {
 
 template<typename ScalarType>
 void do_test_multiplysign(int viewExtent) {
-    const int simdSize = simd::simd<ScalarType, simd::simd_abi::native>::size();
-    const int expectedSize = viewExtent *  simd::simd<ScalarType, simd::simd_abi::native>::size();
+    const int simdSize = simd_t<ScalarType>::size();
+    const int expectedSize = viewExtent *  simd_t<ScalarType>::size();
 
     auto data = create_data_with_uniq_value<ScalarType>("Test View", viewExtent, 4.0);
 
@@ -632,10 +716,38 @@ void do_test_multiplysign(int viewExtent) {
     delete[] expectedData;
 }
 
+TEST(simd_math, test_constructor_1) {
+
+    for (auto extent: extentArray) {
+        do_test_constructor<double>(SIMD_CONSTRUCTOR_SCALAR, extent);
+        do_test_constructor<float>(SIMD_CONSTRUCTOR_SCALAR, extent);
+        do_test_constructor<double>(SIMD_CONSTRUCTOR_MUTLI_SCALAR, extent);
+        do_test_constructor<float>(SIMD_CONSTRUCTOR_MUTLI_SCALAR, extent);
+        do_test_constructor<double>(SIMD_CONSTRUCTOR_MUTLI_PTR_FLAG, extent);
+        do_test_constructor<float>(SIMD_CONSTRUCTOR_MUTLI_PTR_FLAG, extent);
+        do_test_constructor<double>(SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE, extent);
+        do_test_constructor<float>(SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE, extent);
+#ifdef __SSE2__
+        do_test_constructor<double>(SIMD_CONSTRUCTOR_MUTLI_SSE2, extent);
+        do_test_constructor<float>(SIMD_CONSTRUCTOR_MUTLI_SSE2, extent);
+#endif
+    }
+ }
+
 TEST(simd_math, test_abs) {
     for (auto extent: extentArray) {
-        do_test_abs<double>(extent);
-        do_test_abs<float>(extent);
+        do_test_abs<double>(SIMD_CONSTRUCTOR_SCALAR, extent);
+        do_test_abs<float>(SIMD_CONSTRUCTOR_SCALAR, extent);
+        do_test_abs<double>(SIMD_CONSTRUCTOR_MUTLI_SCALAR, extent);
+        do_test_abs<float>(SIMD_CONSTRUCTOR_MUTLI_SCALAR, extent);
+        do_test_abs<double>(SIMD_CONSTRUCTOR_MUTLI_PTR_FLAG, extent);
+        do_test_abs<float>(SIMD_CONSTRUCTOR_MUTLI_PTR_FLAG, extent);
+        do_test_abs<double>(SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE, extent);
+        do_test_abs<float>(SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE, extent);
+#ifdef __SSE2__
+        do_test_abs<double>(SIMD_CONSTRUCTOR_MUTLI_SSE2, extent);
+        do_test_abs<float>(SIMD_CONSTRUCTOR_MUTLI_SSE2, extent);
+#endif
     }
  }
 
