@@ -46,10 +46,9 @@
 #include <simd.hpp>
 
 namespace Test {
-
-constexpr int extentArray[14] = {1,      2,      8,       9,      100,
-                                 101,    1000,   1001,    10000,  10001,
-                                 100000, 100001, 1000000, 1000001};
+constexpr int extentArray[] = {1,      2,      8,       9,      100,
+                               101,    1000,   1001,    10000,  10001,
+                               100000, 100001, 1000000, 1000001};
 
 template <typename T>
 bool is_true(const T &mask) {
@@ -97,24 +96,22 @@ TEST(simd_mask, simd_mask_basic_api) {
 }
 
 template <class ScalarType>
-bool test_is_mask_smaller(
+bool test_simd_mask_less(
     Kokkos::View<simd::simd<ScalarType, simd::simd_abi::native> *> data) {
   using simd_t = simd::simd<ScalarType, simd::simd_abi::native>;
   using mask_t = typename simd_t::mask_type;
 
-  Kokkos::View<simd_t *> results("Test results", data.extent(0));
-
   const simd_t min = 0.0;
+  Kokkos::View<simd_t *> results("Test results", data.extent(0));
   Kokkos::parallel_for(
-      "is_mask_smaller", data.extent(0), KOKKOS_LAMBDA(const int i) {
-        const auto a_i        = data(i);
-        mask_t is_data_bigger = min < a_i;
-        results(i)            = all_of(is_data_bigger);
+      "simd_mask_less", data.extent(0), KOKKOS_LAMBDA(const int i) {
+        const auto d_i            = data(i);
+        const auto is_data_bigger = min < d_i;
+        results(i)                = simd::all_of(is_data_bigger);
       });
 
   Kokkos::View<ScalarType *> results_scalar(
-      (ScalarType *)(results.data()), results.extent(0) * simd_t ::size());
-
+      (ScalarType *)(results.data()), results.extent(0) * simd_t::size());
   int result = 0;
   Kokkos::parallel_reduce(
       "Reduce results", results_scalar.extent(0),
@@ -124,29 +121,29 @@ bool test_is_mask_smaller(
 }
 
 template <typename ScalarType>
-void do_test_simd_mask_smaller(const int viewExtent) {
+void do_test_simd_mask_less(const int viewExtent) {
   using simd_t = simd::simd<ScalarType, simd::simd_abi::native>;
 
-  const int data_size      = viewExtent * simd_t ::size();
-  const int simd_data_size = viewExtent;
+  const int data_size = viewExtent * simd_t::size();
+  Kokkos::View<ScalarType *> test_data("Test data", data_size);
 
-  Kokkos::View<ScalarType *> a("Test data", data_size);
-
-  auto h_a = Kokkos::create_mirror_view(a);
+  auto host_test_data = Kokkos::create_mirror_view(test_data);
   for (int i = 0; i < data_size; ++i) {
-    h_a(i) = i + 1;
+    host_test_data(i) = static_cast<ScalarType>(i + 1);
   }
 
-  Kokkos::deep_copy(a, h_a);
+  Kokkos::deep_copy(test_data, host_test_data);
 
-  Kokkos::View<simd_t *> a_v((simd_t *)(a.data()), simd_data_size);
-  EXPECT_TRUE(test_is_mask_smaller<ScalarType>(a_v));
+  const int simd_data_size = viewExtent;
+  Kokkos::View<simd_t *> simd_test_data((simd_t *)(test_data.data()),
+                                        simd_data_size);
+  EXPECT_TRUE(test_simd_mask_less<ScalarType>(simd_test_data));
 }
 
-TEST(simd_mask, simd_mask_smaller) {
+TEST(simd_mask, simd_mask_less) {
   for (const auto extent : extentArray) {
-    do_test_simd_mask_smaller<float>(extent);
-    do_test_simd_mask_smaller<double>(extent);
+    do_test_simd_mask_less<float>(extent);
+    do_test_simd_mask_less<double>(extent);
   }
 }
 
@@ -156,19 +153,17 @@ bool test_is_mask_equal(
   using simd_t = simd::simd<ScalarType, simd::simd_abi::native>;
   using mask_t = typename simd_t::mask_type;
 
-  Kokkos::View<simd_t *> results("Test results", data.extent(0));
-
   const simd_t val = 0.0;
+  Kokkos::View<simd_t *> results("Test results", data.extent(0));
   Kokkos::parallel_for(
       "is_mask_equal", data.extent(0), KOKKOS_LAMBDA(const int i) {
-        const auto a_i       = data(i);
-        mask_t is_data_equal = val == a_i;
-        results(i)           = all_of(is_data_equal);
+        const auto d_i           = data(i);
+        const auto is_data_equal = val == d_i;
+        results(i)               = simd::all_of(is_data_equal);
       });
 
   Kokkos::View<ScalarType *> results_scalar(
-      (ScalarType *)(results.data()), results.extent(0) * simd_t ::size());
-
+      (ScalarType *)(results.data()), results.extent(0) * simd_t::size());
   int result = 0;
   Kokkos::parallel_reduce(
       "Reduce results", results_scalar.extent(0),
@@ -181,20 +176,20 @@ template <typename ScalarType>
 void do_test_simd_mask_equal(const int viewExtent) {
   using simd_t = simd::simd<ScalarType, simd::simd_abi::native>;
 
-  const int data_size      = viewExtent * simd_t::size();
-  const int simd_data_size = viewExtent;
+  const int data_size = viewExtent * simd_t::size();
+  Kokkos::View<ScalarType *> test_data("Test data", data_size);
 
-  Kokkos::View<ScalarType *> a("Test data", data_size);
-
-  auto h_a = Kokkos::create_mirror_view(a);
+  auto host_test_data = Kokkos::create_mirror_view(test_data);
   for (int i = 0; i < data_size; ++i) {
-    h_a(i) = 0.0;
+    host_test_data(i) = static_cast<ScalarType>(0);
   }
 
-  Kokkos::deep_copy(a, h_a);
+  Kokkos::deep_copy(test_data, host_test_data);
 
-  Kokkos::View<simd_t *> a_v((simd_t *)(a.data()), simd_data_size);
-  EXPECT_TRUE(test_is_mask_equal<ScalarType>(a_v));
+  const int simd_data_size = viewExtent;
+  Kokkos::View<simd_t *> simd_test_data((simd_t *)(test_data.data()),
+                                        simd_data_size);
+  EXPECT_TRUE(test_is_mask_equal<ScalarType>(simd_test_data));
 }
 
 TEST(simd_mask, simd_mask_equal) {
