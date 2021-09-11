@@ -104,7 +104,7 @@ bool test_is_mask_smaller(
 
   Kokkos::View<simd_t *> results("Test results", data.extent(0));
 
-  simd_t min = 0.0;
+  const simd_t min = 0.0;
   Kokkos::parallel_for(
       "is_mask_smaller", data.extent(0), KOKKOS_LAMBDA(const int i) {
         const auto a_i        = data(i);
@@ -144,9 +144,63 @@ void do_test_simd_mask_smaller(const int viewExtent) {
 }
 
 TEST(simd_mask, simd_mask_smaller) {
-  for (auto extent : extentArray) {
+  for (const auto extent : extentArray) {
     do_test_simd_mask_smaller<float>(extent);
     do_test_simd_mask_smaller<double>(extent);
+  }
+}
+
+template <typename ScalarType>
+bool test_is_mask_equal(
+    Kokkos::View<simd::simd<ScalarType, simd::simd_abi::native> *> data) {
+  using simd_t = simd::simd<ScalarType, simd::simd_abi::native>;
+  using mask_t = typename simd_t::mask_type;
+
+  Kokkos::View<simd_t *> results("Test results", data.extent(0));
+
+  const simd_t val = 0.0;
+  Kokkos::parallel_for(
+      "is_mask_equal", data.extent(0), KOKKOS_LAMBDA(const int i) {
+        const auto a_i       = data(i);
+        mask_t is_data_equal = val == a_i;
+        results(i)           = all_of(is_data_equal);
+      });
+
+  Kokkos::View<ScalarType *> results_scalar(
+      (ScalarType *)(results.data()), results.extent(0) * simd_t ::size());
+
+  int result = 0;
+  Kokkos::parallel_reduce(
+      "Reduce results", results_scalar.extent(0),
+      KOKKOS_LAMBDA(const int i, int &r) { r += results_scalar(i); }, result);
+
+  return result == results_scalar.extent(0);
+}
+
+template <typename ScalarType>
+void do_test_simd_mask_equal(const int viewExtent) {
+  using simd_t = simd::simd<ScalarType, simd::simd_abi::native>;
+
+  const int data_size      = viewExtent * simd_t::size();
+  const int simd_data_size = viewExtent;
+
+  Kokkos::View<ScalarType *> a("Test data", data_size);
+
+  auto h_a = Kokkos::create_mirror_view(a);
+  for (int i = 0; i < data_size; ++i) {
+    h_a(i) = 0.0;
+  }
+
+  Kokkos::deep_copy(a, h_a);
+
+  Kokkos::View<simd_t *> a_v((simd_t *)(a.data()), simd_data_size);
+  EXPECT_TRUE(test_is_mask_equal<ScalarType>(a_v));
+}
+
+TEST(simd_mask, simd_mask_equal) {
+  for (const auto extent : extentArray) {
+    do_test_simd_mask_equal<float>(extent);
+    do_test_simd_mask_equal<double>(extent);
   }
 }
 
