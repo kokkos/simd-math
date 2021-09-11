@@ -204,4 +204,66 @@ TEST(simd_mask, simd_mask_equal) {
   }
 }
 
+template <typename ScalarType>
+bool test_choose(
+    Kokkos::View<simd::simd<ScalarType, simd::simd_abi::native> *> data) {
+  using simd_t = simd::simd<ScalarType, simd::simd_abi::native>;
+  using mask_t = typename simd_t::mask_type;
+
+  const simd_t threshold = 0.0;
+  Kokkos::View<simd_t *> choose_results("Choose results", data.extent(0));
+  Kokkos::parallel_for(
+      "simd_choose", data.extent(0), KOKKOS_LAMBDA(const int i) {
+        const auto d_i               = data(i);
+        const auto is_data_less_than = d_i < threshold;
+
+        choose_results(i) = simd::choose(is_data_less_than, d_i, threshold);
+      });
+
+  Kokkos::View<simd_t *> results("Test results", data.extent(0));
+  Kokkos::parallel_for(
+      "check_simd_choose_results", choose_results.extent(0),
+      KOKKOS_LAMBDA(const int i) {
+        const auto cr_i               = choose_results(i);
+        const auto is_equal_threshold = cr_i == threshold;
+        results(i)                    = simd::all_of(is_equal_threshold);
+      });
+
+  Kokkos::View<ScalarType *> results_scalar((ScalarType *)(results.data()),
+                                            results.extent(0) * simd_t::size());
+  int result = 0;
+  Kokkos::parallel_reduce(
+      "Reduce results", results_scalar.extent(0),
+      KOKKOS_LAMBDA(const int i, int &r) { r += results_scalar(i); }, result);
+
+  return result == results_scalar.extent(0);
+}
+
+template <typename ScalarType>
+void do_test_simd_mask_choose(const int viewExtent) {
+  using simd_t = simd::simd<ScalarType, simd::simd_abi::native>;
+
+  const int data_size = viewExtent * simd_t::size();
+  Kokkos::View<ScalarType *> test_data("Test data", data_size);
+
+  auto host_test_data = Kokkos::create_mirror_view(test_data);
+  for (int i = 0; i < data_size; ++i) {
+    host_test_data(i) = static_cast<ScalarType>(i);
+  }
+
+  Kokkos::deep_copy(test_data, host_test_data);
+
+  const int simd_data_size = viewExtent;
+  Kokkos::View<simd_t *> simd_test_data((simd_t *)(test_data.data()),
+                                        simd_data_size);
+  EXPECT_TRUE(test_choose<ScalarType>(simd_test_data));
+}
+
+TEST(simd_mask, simd_mask_choose) {
+  for (const auto extent : extentArray) {
+    do_test_simd_mask_choose<float>(extent);
+    do_test_simd_mask_choose<double>(extent);
+  }
+}
+
 }  // namespace Test
