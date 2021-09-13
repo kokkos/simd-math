@@ -62,7 +62,6 @@ namespace Test {
 
 template <typename ScalarType>
 using simd_t =    simd::simd<ScalarType, simd::simd_abi::native>;
-//using mask_t = simd_t<double>::mask_type;
 
 // Method to create simd
 template<typename ScalarType>
@@ -147,13 +146,13 @@ Kokkos::View<simd_t<ValueType> *> create_data_zero_to_size_negative(std::string 
 }
 
 template<class ValueType>
-Kokkos::View<simd_t<ValueType> *> create_data_sqrt(std::string name, int size) {
+Kokkos::View<simd_t<ValueType> *> create_data_sqrt(std::string name, int size, SIMD_CONSTRUCTOR constructor = SIMD_CONSTRUCTOR_SCALAR) {
     Kokkos::View<simd_t<ValueType> *> data(name, size);
     auto data_h = Kokkos::create_mirror_view(Kokkos::HostSpace(), data); // this lives on host
     int j = 0; // We don't want a square higher than 10k *10k. After this  we restart the square from 0.
     for(size_t i = 0; i < data_h.extent(0); ++i)
     {
-      data_h(i) = simd_t<ValueType>{static_cast<ValueType>(j)} * simd_t<ValueType>{static_cast<ValueType>(j)};
+      data_h(i) = createSimd<ValueType>(constructor,j) * createSimd<ValueType>(constructor,j);
       j >= sqrtMaxIndex ? j = 0 : ++j;
     }
     Kokkos::deep_copy(data, data_h);
@@ -162,13 +161,13 @@ Kokkos::View<simd_t<ValueType> *> create_data_sqrt(std::string name, int size) {
 }
 
 template<class ValueType>
-Kokkos::View<simd_t<ValueType> *> create_data_cbrt(std::string name, int size) {
+Kokkos::View<simd_t<ValueType> *> create_data_cbrt(std::string name, int size, SIMD_CONSTRUCTOR constructor = SIMD_CONSTRUCTOR_SCALAR) {
     Kokkos::View<simd_t<ValueType> *> data(name, size);
     auto data_h = Kokkos::create_mirror_view(Kokkos::HostSpace(), data); // this lives on host
     int j = 0; // We don't want a cbrt higher than 5k * 5k * 5k. After this  we restart the square from 0.
     for(size_t i = 0; i < data_h.extent(0); ++i)
     {
-      data_h(i) = simd_t<ValueType>{static_cast<ValueType>(j)} * simd_t<ValueType>{static_cast<ValueType>(j)} * simd_t<ValueType>{static_cast<ValueType>(j)};
+      data_h(i) = createSimd<ValueType>(constructor,j) * createSimd<ValueType>(constructor,j) * createSimd<ValueType>(constructor,j);
       j >= cbrtMaxIndex ? j = 0 : ++j;
 
     }
@@ -378,7 +377,7 @@ void do_test_abs(SIMD_CONSTRUCTOR constructor, int viewExtent) {
 }
 
 template<typename ScalarType>
-void do_test_sqrt(int viewExtent) {
+void do_test_sqrt(SIMD_CONSTRUCTOR constructor, int viewExtent) {
     const int simdSize = simd_t<ScalarType>::size();
     const int expectedSize = viewExtent *  simd_t<ScalarType>::size();
 
@@ -387,13 +386,17 @@ void do_test_sqrt(int viewExtent) {
     test_sqrt(data);
     test_view_result("test_sqrt_1", data, static_cast<ScalarType>(4.0));
 
-    data = create_data_sqrt<ScalarType>("Test View 2", viewExtent);
+    data = create_data_sqrt<ScalarType>("Test View 2", viewExtent, constructor);
     ScalarType *expectedData = new ScalarType[expectedSize];
     int k = 0;
     for(int i = 0; i < viewExtent; ++i) {
 
         for(int j = 0; j < simdSize; ++j) {
-            expectedData[i * simdSize + j] = static_cast<ScalarType>(k);
+            if(constructor == SIMD_CONSTRUCTOR_SCALAR) {
+                expectedData[i * simdSize + j] = static_cast<ScalarType>(k);
+            } else {
+                expectedData[i * simdSize + j] = static_cast<ScalarType>(k + j);
+            }
         }
         k >= sqrtMaxIndex ? k = 0 : ++k;
     }
@@ -404,7 +407,7 @@ void do_test_sqrt(int viewExtent) {
 }
 
 template<typename ScalarType>
-void do_test_cbrt(int viewExtent) {
+void do_test_cbrt(SIMD_CONSTRUCTOR constructor, int viewExtent) {
     const int simdSize = simd_t<ScalarType>::size();
     const int expectedSize = viewExtent *  simd_t<ScalarType>::size();
 
@@ -413,17 +416,20 @@ void do_test_cbrt(int viewExtent) {
     test_cbrt(data);
     test_view_result("test_cbrt_1", data, static_cast<ScalarType>(3.0));
 
-    data = create_data_cbrt<ScalarType>("Test View 2", viewExtent);
+    data = create_data_cbrt<ScalarType>("Test View 2", viewExtent, constructor);
     ScalarType *expectedData = new ScalarType[expectedSize];
     int k = 0;
     for(int i = 0; i < viewExtent; ++i) {
 
         for(int j = 0; j < simdSize; ++j) {
-            expectedData[i * simdSize + j] = static_cast<ScalarType>(k);
+            if(constructor == SIMD_CONSTRUCTOR_SCALAR) {
+                expectedData[i * simdSize + j] = static_cast<ScalarType>(k);
+            } else {
+                expectedData[i * simdSize + j] = static_cast<ScalarType>(k + j);
+            }
         }
         k >= cbrtMaxIndex ? k = 0 : ++k;
     }
-
 
     test_cbrt(data);
     test_view_result("test_cbrt_2", data, expectedData);
@@ -431,7 +437,7 @@ void do_test_cbrt(int viewExtent) {
 }
 
 template<typename ScalarType>
-void do_test_exp(int viewExtent) {
+void do_test_exp(SIMD_CONSTRUCTOR constructor, int viewExtent) {
     const int simdSize = simd_t<ScalarType>::size();
     const int expectedSize = viewExtent *  simd_t<ScalarType>::size();
 
@@ -440,12 +446,15 @@ void do_test_exp(int viewExtent) {
     test_exp(data);
     test_view_result("test_exp_1", data, static_cast<ScalarType>(std::exp(1.0)));
 
-    data = create_data_zero_to_size_positive<ScalarType>("Test View 2", viewExtent);
+    data = create_data_zero_to_size_positive<ScalarType>("Test View 2", viewExtent, constructor);
     ScalarType *expectedData = new ScalarType[expectedSize];
     for(int i = 0; i < viewExtent; ++i) {
-
         for(int j = 0; j < simdSize; ++j) {
-            expectedData[i * simdSize + j] = static_cast<ScalarType>(std::exp(i));
+            if(constructor == SIMD_CONSTRUCTOR_SCALAR) {
+                expectedData[i * simdSize + j] = static_cast<ScalarType>(std::exp(i));
+            } else {
+                expectedData[i * simdSize + j] = static_cast<ScalarType>(std::exp(i + j));
+            }
         }
     }
 
@@ -455,7 +464,7 @@ void do_test_exp(int viewExtent) {
 }
 
 template<typename ScalarType>
-void do_test_fma(int viewExtent) {
+void do_test_fma(SIMD_CONSTRUCTOR constructor, int viewExtent) {
     const int simdSize = simd_t<ScalarType>::size();
     const int expectedSize = viewExtent *  simd_t<ScalarType>::size();
 
@@ -464,23 +473,30 @@ void do_test_fma(int viewExtent) {
     test_fma(data, simd_t<ScalarType>{2.0}, simd_t<ScalarType>{5.0});
     test_view_result("test_fma_1", data, static_cast<ScalarType>(-3.0));
 
-    data = create_data_zero_to_size_positive<ScalarType>("Test View 2", viewExtent);
+    data = create_data_zero_to_size_positive<ScalarType>("Test View 2", viewExtent, constructor);
     ScalarType *expectedData = new ScalarType[expectedSize];
     for(int i = 0; i < viewExtent; ++i) {
-
         for(int j = 0; j < simdSize; ++j) {
-            expectedData[i * simdSize + j] = static_cast<ScalarType>(7.0 + 4*i);
+            if(constructor == SIMD_CONSTRUCTOR_SCALAR) {
+                expectedData[i * simdSize + j] = static_cast<ScalarType>(7.0 + 4*i);
+            } else {
+                expectedData[i * simdSize + j] = static_cast<ScalarType>(7.0 + 4*(i + j));
+            }
         }
     }
 
     test_fma(data, simd_t<ScalarType>{4.0}, simd_t<ScalarType>{7.0});
     test_view_result("test_fma_2", data, expectedData);
 
-    data = create_data_zero_to_size_negative<ScalarType>("Test View 2", viewExtent);
+    data = create_data_zero_to_size_negative<ScalarType>("Test View 2", viewExtent, constructor);
     for(int i = 0; i < viewExtent; ++i) {
 
         for(int j = 0; j < simdSize; ++j) {
-            expectedData[i * simdSize + j] = static_cast<ScalarType>(7.0 - 4*i);
+            if(constructor == SIMD_CONSTRUCTOR_SCALAR) {
+                expectedData[i * simdSize + j] = static_cast<ScalarType>(7.0 - 4*i);
+            } else {
+                expectedData[i * simdSize + j] = static_cast<ScalarType>(7.0 - 4*(i + j));
+            }
         }
     }
 
@@ -490,7 +506,7 @@ void do_test_fma(int viewExtent) {
 }
 
 template<typename ScalarType>
-void do_test_max(int viewExtent) {
+void do_test_max(SIMD_CONSTRUCTOR constructor, int viewExtent) {
     const int simdSize = simd_t<ScalarType>::size();
     const int expectedSize = viewExtent *  simd_t<ScalarType>::size();
 
@@ -499,18 +515,25 @@ void do_test_max(int viewExtent) {
     test_max(data, simd_t<ScalarType>{10.0});
     test_view_result("test_max_1", data, static_cast<ScalarType>(10.0));
 
-    data = create_data_sqrt<ScalarType>("Test View 2", viewExtent);
+    data = create_data_sqrt<ScalarType>("Test View 2", viewExtent, constructor);
     ScalarType *expectedData = new ScalarType[expectedSize];
     int k = 0;
     for(int i = 0; i < viewExtent; ++i) {
 
         for(int j = 0; j < simdSize; ++j) {
-            if( k < 4) {
-                expectedData[i * simdSize + j] = static_cast<ScalarType>(10.0);
+            if(constructor == SIMD_CONSTRUCTOR_SCALAR) {
+                if( k  < 4) {
+                    expectedData[i * simdSize + j] = static_cast<ScalarType>(10.0);
+                } else {
+                    expectedData[i * simdSize + j] = static_cast<ScalarType>(k * k);
+                }
             } else {
-                expectedData[i * simdSize + j] = static_cast<ScalarType>(k * k);
+                if( (k + j)  < 4) {
+                    expectedData[i * simdSize + j] = static_cast<ScalarType>(10.0);
+                } else {
+                    expectedData[i * simdSize + j] = static_cast<ScalarType>((k + j) * (k + j));
+                }
             }
-
         }
         k >= sqrtMaxIndex ? k = 0 : ++k;
     }
@@ -521,7 +544,7 @@ void do_test_max(int viewExtent) {
 }
 
 template<typename ScalarType>
-void do_test_min(int viewExtent) {
+void do_test_min(SIMD_CONSTRUCTOR constructor, int viewExtent) {
     const int simdSize = simd_t<ScalarType>::size();
     const int expectedSize = viewExtent *  simd_t<ScalarType>::size();
 
@@ -530,16 +553,24 @@ void do_test_min(int viewExtent) {
     test_min(data, simd_t<ScalarType>{1.0});
     test_view_result("test_min_1", data, static_cast<ScalarType>(1.0));
 
-    data = create_data_sqrt<ScalarType>("Test View 2", viewExtent);
+    data = create_data_sqrt<ScalarType>("Test View 2", viewExtent, constructor);
     ScalarType *expectedData = new ScalarType[expectedSize];
     int k = 0;
     for(int i = 0; i < viewExtent; ++i) {
 
         for(int j = 0; j < simdSize; ++j) {
-            if( k < 4) {
-                expectedData[i * simdSize + j] = static_cast<ScalarType>(k * k);
+            if(constructor == SIMD_CONSTRUCTOR_SCALAR) {
+                if( k  < 4) {
+                    expectedData[i * simdSize + j] = static_cast<ScalarType>(k * k);
+                } else {
+                    expectedData[i * simdSize + j] = static_cast<ScalarType>(10.0);
+                }
             } else {
-                expectedData[i * simdSize + j] = static_cast<ScalarType>(10.0);
+                if( (k + j)  < 4) {
+                    expectedData[i * simdSize + j] = static_cast<ScalarType>((k + j) * (k + j));
+                } else {
+                    expectedData[i * simdSize + j] = static_cast<ScalarType>(10.0);
+                }
             }
         }
 
@@ -552,7 +583,7 @@ void do_test_min(int viewExtent) {
 }
 
 template<typename ScalarType>
-void do_test_op_add(int viewExtent) {
+void do_test_op_add(SIMD_CONSTRUCTOR constructor, int viewExtent) {
     const int simdSize = simd_t<ScalarType>::size();
     const int expectedSize = viewExtent *  simd_t<ScalarType>::size();
 
@@ -560,11 +591,15 @@ void do_test_op_add(int viewExtent) {
     test_op_add(data, simd_t<ScalarType>{10.0});
     test_view_result("test_op_add_1", data, static_cast<ScalarType>(14.0));
 
-    data = create_data_zero_to_size_positive<ScalarType>("Test View 2", viewExtent);
+    data = create_data_zero_to_size_positive<ScalarType>("Test View 2", viewExtent, constructor);
     ScalarType *expectedData = new ScalarType[expectedSize];
     for(int i = 0; i < viewExtent; ++i) {
         for(int j = 0; j < simdSize; ++j) {
-            expectedData[i * simdSize + j] = static_cast<ScalarType>(4.0 + i);
+            if(constructor == SIMD_CONSTRUCTOR_SCALAR) {
+                expectedData[i * simdSize + j] = static_cast<ScalarType>(4.0 + i);
+            } else {
+                expectedData[i * simdSize + j] = static_cast<ScalarType>(4.0 + i + j);
+            }
         }
     }
 
@@ -574,7 +609,7 @@ void do_test_op_add(int viewExtent) {
 }
 
 template<typename ScalarType>
-void do_test_op_sub(int viewExtent) {
+void do_test_op_sub(SIMD_CONSTRUCTOR constructor, int viewExtent) {
     const int simdSize = simd_t<ScalarType>::size();
     const int expectedSize = viewExtent *  simd_t<ScalarType>::size();
 
@@ -583,11 +618,15 @@ void do_test_op_sub(int viewExtent) {
     test_op_sub(data, simd_t<ScalarType>{10.0});
     test_view_result("test_op_sub_1", data, static_cast<ScalarType>(-6.0));
 
-    data = create_data_zero_to_size_positive<ScalarType>("Test View 2", viewExtent);
+    data = create_data_zero_to_size_positive<ScalarType>("Test View 2", viewExtent, constructor);
     ScalarType *expectedData = new ScalarType[expectedSize];
     for(int i = 0; i < viewExtent; ++i) {
         for(int j = 0; j < simdSize; ++j) {
-            expectedData[i * simdSize + j] = static_cast<ScalarType>(-4.0 + i);
+            if(constructor == SIMD_CONSTRUCTOR_SCALAR) {
+                expectedData[i * simdSize + j] = static_cast<ScalarType>(-4.0 + i);
+            } else {
+                expectedData[i * simdSize + j] = static_cast<ScalarType>(-4.0 + i + j);
+            }
         }
     }
 
@@ -597,7 +636,7 @@ void do_test_op_sub(int viewExtent) {
 }
 
 template<typename ScalarType>
-void do_test_op_mul(int viewExtent) {
+void do_test_op_mul(SIMD_CONSTRUCTOR constructor, int viewExtent) {
     const int simdSize = simd_t<ScalarType>::size();
     const int expectedSize = viewExtent *  simd_t<ScalarType>::size();
 
@@ -606,11 +645,15 @@ void do_test_op_mul(int viewExtent) {
     test_op_mul(data, simd_t<ScalarType>{10.0});
     test_view_result("test_op_mul_1", data, static_cast<ScalarType>(40.0));
 
-    data = create_data_zero_to_size_positive<ScalarType>("Test View 2", viewExtent);
+    data = create_data_zero_to_size_positive<ScalarType>("Test View 2", viewExtent, constructor);
     ScalarType *expectedData = new ScalarType[expectedSize];
     for(int i = 0; i < viewExtent; ++i) {
         for(int j = 0; j < simdSize; ++j) {
-            expectedData[i * simdSize + j] = static_cast<ScalarType>(4.0 * i);
+            if(constructor == SIMD_CONSTRUCTOR_SCALAR) {
+                expectedData[i * simdSize + j] = static_cast<ScalarType>(4.0 * i);
+            } else {
+                expectedData[i * simdSize + j] = static_cast<ScalarType>(4.0 * (i + j));
+            }
         }
     }
 
@@ -620,7 +663,7 @@ void do_test_op_mul(int viewExtent) {
 }
 
 template<typename ScalarType>
-void do_test_op_div(int viewExtent) {
+void do_test_op_div(SIMD_CONSTRUCTOR constructor, int viewExtent) {
     const int simdSize = simd_t<ScalarType>::size();
     const int expectedSize = viewExtent *  simd_t<ScalarType>::size();
 
@@ -629,11 +672,15 @@ void do_test_op_div(int viewExtent) {
     test_op_div(data, simd_t<ScalarType>{10.0});
     test_view_result("test_op_div_1", data, static_cast<ScalarType>(0.4));
 
-    data = create_data_zero_to_size_positive<ScalarType>("Test View 2", viewExtent);
+    data = create_data_zero_to_size_positive<ScalarType>("Test View 2", viewExtent, constructor);
     ScalarType *expectedData = new ScalarType[expectedSize];
     for(int i = 0; i < viewExtent; ++i) {
         for(int j = 0; j < simdSize; ++j) {
-            expectedData[i * simdSize + j] = static_cast<ScalarType>(i / 4.0);
+            if(constructor == SIMD_CONSTRUCTOR_SCALAR) {
+                expectedData[i * simdSize + j] = static_cast<ScalarType>(i / 4.0);
+            } else {
+                expectedData[i * simdSize + j] = static_cast<ScalarType>((i + j) / 4.0);
+            }
         }
     }
 
@@ -643,17 +690,21 @@ void do_test_op_div(int viewExtent) {
 }
 
 template<typename ScalarType>
-void do_test_copysign(int viewExtent) {
+void do_test_copysign(SIMD_CONSTRUCTOR constructor, int viewExtent) {
     const int simdSize = simd_t<ScalarType>::size();
     const int expectedSize = viewExtent *  simd_t<ScalarType>::size();
 
-    auto data = create_data_zero_to_size_positive<ScalarType>("Test View", viewExtent);
+    auto data = create_data_zero_to_size_positive<ScalarType>("Test View", viewExtent, constructor);
     test_copysign(data, simd_t<ScalarType>{2.0});
     ScalarType *expectedData = new ScalarType[expectedSize];
     for(int i = 0; i < viewExtent; ++i) {
 
         for(int j = 0; j < simdSize; ++j) {
-            expectedData[i * simdSize + j] = static_cast<ScalarType>(i);
+            if(constructor == SIMD_CONSTRUCTOR_SCALAR) {
+                expectedData[i * simdSize + j] = static_cast<ScalarType>(i);
+            } else {
+                expectedData[i * simdSize + j] = static_cast<ScalarType>(i + j);
+            }
         }
     }
     test_view_result("test_copysign_1", data, expectedData);
@@ -673,7 +724,7 @@ void do_test_copysign(int viewExtent) {
 }
 
 template<typename ScalarType>
-void do_test_multiplysign(int viewExtent) {
+void do_test_multiplysign(SIMD_CONSTRUCTOR constructor, int viewExtent) {
     const int simdSize = simd_t<ScalarType>::size();
     const int expectedSize = viewExtent *  simd_t<ScalarType>::size();
 
@@ -688,13 +739,17 @@ void do_test_multiplysign(int viewExtent) {
     test_multiplysign(data, simd_t<ScalarType>{2.0});
     test_view_result("test_multiplysign_3", data, static_cast<ScalarType>(-4.0));
 
-    data = create_data_zero_to_size_positive<ScalarType>("Test View", viewExtent);
+    data = create_data_zero_to_size_positive<ScalarType>("Test View", viewExtent, constructor);
     test_multiplysign(data, simd_t<ScalarType>{2.0});
     ScalarType *expectedData = new ScalarType[expectedSize];
     for(int i = 0; i < viewExtent; ++i) {
 
         for(int j = 0; j < simdSize; ++j) {
-            expectedData[i * simdSize + j] = static_cast<ScalarType>(i);
+            if(constructor == SIMD_CONSTRUCTOR_SCALAR) {
+                expectedData[i * simdSize + j] = static_cast<ScalarType>(i);
+            } else {
+                expectedData[i * simdSize + j] = static_cast<ScalarType>(i + j);
+            }
         }
     }
     test_view_result("test_multiplysign_4", data, expectedData);
@@ -753,85 +808,205 @@ TEST(simd_math, test_abs) {
 
 TEST(simd_math, test_sqrt) {
     for (auto extent: extentArray) {
-        do_test_sqrt<double>(extent);
-        do_test_sqrt<float>(extent);
+        do_test_sqrt<double>(SIMD_CONSTRUCTOR_SCALAR, extent);
+        do_test_sqrt<float>(SIMD_CONSTRUCTOR_SCALAR, extent);
+        do_test_sqrt<double>(SIMD_CONSTRUCTOR_MUTLI_SCALAR, extent);
+        do_test_sqrt<float>(SIMD_CONSTRUCTOR_MUTLI_SCALAR, extent);
+        do_test_sqrt<double>(SIMD_CONSTRUCTOR_MUTLI_PTR_FLAG, extent);
+        do_test_sqrt<float>(SIMD_CONSTRUCTOR_MUTLI_PTR_FLAG, extent);
+        do_test_sqrt<double>(SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE, extent);
+        do_test_sqrt<float>(SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE, extent);
+#ifdef __SSE2__
+        do_test_sqrt<double>(SIMD_CONSTRUCTOR_MUTLI_SSE2, extent);
+        do_test_sqrt<float>(SIMD_CONSTRUCTOR_MUTLI_SSE2, extent);
+#endif
     }
 }
 
 TEST(simd_math, test_cbrt) {
     for (auto extent: extentArray) {
-        do_test_cbrt<double>(extent);
-        do_test_cbrt<float>(extent);
+        do_test_cbrt<double>(SIMD_CONSTRUCTOR_SCALAR, extent);
+        do_test_cbrt<float>(SIMD_CONSTRUCTOR_SCALAR, extent);
+        do_test_cbrt<double>(SIMD_CONSTRUCTOR_MUTLI_SCALAR, extent);
+        do_test_cbrt<float>(SIMD_CONSTRUCTOR_MUTLI_SCALAR, extent);
+        do_test_cbrt<double>(SIMD_CONSTRUCTOR_MUTLI_PTR_FLAG, extent);
+        do_test_cbrt<float>(SIMD_CONSTRUCTOR_MUTLI_PTR_FLAG, extent);
+        do_test_cbrt<double>(SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE, extent);
+        do_test_cbrt<float>(SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE, extent);
+#ifdef __SSE2__
+        do_test_cbrt<double>(SIMD_CONSTRUCTOR_MUTLI_SSE2, extent);
+        do_test_cbrt<float>(SIMD_CONSTRUCTOR_MUTLI_SSE2, extent);
+#endif
     }
 }
 
 TEST(simd_math, test_exp) {
     for (auto extent: extentArray) {
-        do_test_exp<double>(extent);
-        do_test_exp<float>(extent);
+        do_test_exp<double>(SIMD_CONSTRUCTOR_SCALAR, extent);
+        do_test_exp<float>(SIMD_CONSTRUCTOR_SCALAR, extent);
+        do_test_exp<double>(SIMD_CONSTRUCTOR_MUTLI_SCALAR, extent);
+        do_test_exp<float>(SIMD_CONSTRUCTOR_MUTLI_SCALAR, extent);
+        do_test_exp<double>(SIMD_CONSTRUCTOR_MUTLI_PTR_FLAG, extent);
+        do_test_exp<float>(SIMD_CONSTRUCTOR_MUTLI_PTR_FLAG, extent);
+        do_test_exp<double>(SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE, extent);
+        do_test_exp<float>(SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE, extent);
+#ifdef __SSE2__
+        do_test_exp<double>(SIMD_CONSTRUCTOR_MUTLI_SSE2, extent);
+        do_test_exp<float>(SIMD_CONSTRUCTOR_MUTLI_SSE2, extent);
+#endif
     }
 }
 
 TEST(simd_math, test_fma) {
     for (auto extent: extentArray) {
-        do_test_fma<double>(extent);
-        do_test_fma<float>(extent);
+        do_test_fma<double>(SIMD_CONSTRUCTOR_SCALAR, extent);
+        do_test_fma<float>(SIMD_CONSTRUCTOR_SCALAR, extent);
+        do_test_fma<double>(SIMD_CONSTRUCTOR_MUTLI_SCALAR, extent);
+        do_test_fma<float>(SIMD_CONSTRUCTOR_MUTLI_SCALAR, extent);
+        do_test_fma<double>(SIMD_CONSTRUCTOR_MUTLI_PTR_FLAG, extent);
+        do_test_fma<float>(SIMD_CONSTRUCTOR_MUTLI_PTR_FLAG, extent);
+        do_test_fma<double>(SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE, extent);
+        do_test_fma<float>(SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE, extent);
+#ifdef __SSE2__
+        do_test_fma<double>(SIMD_CONSTRUCTOR_MUTLI_SSE2, extent);
+        do_test_fma<float>(SIMD_CONSTRUCTOR_MUTLI_SSE2, extent);
+#endif
     }
 }
 
 TEST(simd_math, test_max) {
     for (auto extent: extentArray) {
-        do_test_max<double>(extent);
-        do_test_max<float>(extent);
+        do_test_max<double>(SIMD_CONSTRUCTOR_SCALAR, extent);
+        do_test_max<float>(SIMD_CONSTRUCTOR_SCALAR, extent);
+        do_test_max<double>(SIMD_CONSTRUCTOR_MUTLI_SCALAR, extent);
+        do_test_max<float>(SIMD_CONSTRUCTOR_MUTLI_SCALAR, extent);
+        do_test_max<double>(SIMD_CONSTRUCTOR_MUTLI_PTR_FLAG, extent);
+        do_test_max<float>(SIMD_CONSTRUCTOR_MUTLI_PTR_FLAG, extent);
+        do_test_max<double>(SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE, extent);
+        do_test_max<float>(SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE, extent);
+#ifdef __SSE2__
+        do_test_max<double>(SIMD_CONSTRUCTOR_MUTLI_SSE2, extent);
+        do_test_max<float>(SIMD_CONSTRUCTOR_MUTLI_SSE2, extent);
+#endif
     }
 }
 
 TEST(simd_math, test_min) {
     for (auto extent: extentArray) {
-        do_test_min<double>(extent);
-        do_test_min<float>(extent);
+        do_test_min<double>(SIMD_CONSTRUCTOR_SCALAR, extent);
+        do_test_min<float>(SIMD_CONSTRUCTOR_SCALAR, extent);
+        do_test_min<double>(SIMD_CONSTRUCTOR_MUTLI_SCALAR, extent);
+        do_test_min<float>(SIMD_CONSTRUCTOR_MUTLI_SCALAR, extent);
+        do_test_min<double>(SIMD_CONSTRUCTOR_MUTLI_PTR_FLAG, extent);
+        do_test_min<float>(SIMD_CONSTRUCTOR_MUTLI_PTR_FLAG, extent);
+        do_test_min<double>(SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE, extent);
+        do_test_min<float>(SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE, extent);
+#ifdef __SSE2__
+        do_test_min<double>(SIMD_CONSTRUCTOR_MUTLI_SSE2, extent);
+        do_test_min<float>(SIMD_CONSTRUCTOR_MUTLI_SSE2, extent);
+#endif
     }
 }
 
 TEST(simd_math, test_op_add) {
     for (auto extent: extentArray) {
-        do_test_op_add<double>(extent);
-        do_test_op_add<float>(extent);
+        do_test_op_add<double>(SIMD_CONSTRUCTOR_SCALAR, extent);
+        do_test_op_add<float>(SIMD_CONSTRUCTOR_SCALAR, extent);
+        do_test_op_add<double>(SIMD_CONSTRUCTOR_MUTLI_SCALAR, extent);
+        do_test_op_add<float>(SIMD_CONSTRUCTOR_MUTLI_SCALAR, extent);
+        do_test_op_add<double>(SIMD_CONSTRUCTOR_MUTLI_PTR_FLAG, extent);
+        do_test_op_add<float>(SIMD_CONSTRUCTOR_MUTLI_PTR_FLAG, extent);
+        do_test_op_add<double>(SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE, extent);
+        do_test_op_add<float>(SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE, extent);
+#ifdef __SSE2__
+        do_test_op_add<double>(SIMD_CONSTRUCTOR_MUTLI_SSE2, extent);
+        do_test_op_add<float>(SIMD_CONSTRUCTOR_MUTLI_SSE2, extent);
+#endif
     }
 }
 
 TEST(simd_math, test_op_sub) {
     for (auto extent: extentArray) {
-        do_test_op_sub<double>(extent);
-        do_test_op_sub<float>(extent);
+        do_test_op_sub<double>(SIMD_CONSTRUCTOR_SCALAR, extent);
+        do_test_op_sub<float>(SIMD_CONSTRUCTOR_SCALAR, extent);
+        do_test_op_sub<double>(SIMD_CONSTRUCTOR_MUTLI_SCALAR, extent);
+        do_test_op_sub<float>(SIMD_CONSTRUCTOR_MUTLI_SCALAR, extent);
+        do_test_op_sub<double>(SIMD_CONSTRUCTOR_MUTLI_PTR_FLAG, extent);
+        do_test_op_sub<float>(SIMD_CONSTRUCTOR_MUTLI_PTR_FLAG, extent);
+        do_test_op_sub<double>(SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE, extent);
+        do_test_op_sub<float>(SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE, extent);
+#ifdef __SSE2__
+        do_test_op_sub<double>(SIMD_CONSTRUCTOR_MUTLI_SSE2, extent);
+        do_test_op_sub<float>(SIMD_CONSTRUCTOR_MUTLI_SSE2, extent);
+#endif
     }
 }
 
 TEST(simd_math, test_op_mul) {
     for (auto extent: extentArray) {
-        do_test_op_mul<double>(extent);
-        do_test_op_mul<float>(extent);
+        do_test_op_mul<double>(SIMD_CONSTRUCTOR_SCALAR, extent);
+        do_test_op_mul<float>(SIMD_CONSTRUCTOR_SCALAR, extent);
+        do_test_op_mul<double>(SIMD_CONSTRUCTOR_MUTLI_SCALAR, extent);
+        do_test_op_mul<float>(SIMD_CONSTRUCTOR_MUTLI_SCALAR, extent);
+        do_test_op_mul<double>(SIMD_CONSTRUCTOR_MUTLI_PTR_FLAG, extent);
+        do_test_op_mul<float>(SIMD_CONSTRUCTOR_MUTLI_PTR_FLAG, extent);
+        do_test_op_mul<double>(SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE, extent);
+        do_test_op_mul<float>(SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE, extent);
+#ifdef __SSE2__
+        do_test_op_mul<double>(SIMD_CONSTRUCTOR_MUTLI_SSE2, extent);
+        do_test_op_mul<float>(SIMD_CONSTRUCTOR_MUTLI_SSE2, extent);
+#endif
     }
 }
 
 TEST(simd_math, test_op_div) {
     for (auto extent: extentArray) {
-        do_test_op_div<double>(extent);
-        do_test_op_div<float>(extent);
+        do_test_op_div<double>(SIMD_CONSTRUCTOR_SCALAR, extent);
+        do_test_op_div<float>(SIMD_CONSTRUCTOR_SCALAR, extent);
+        do_test_op_div<double>(SIMD_CONSTRUCTOR_MUTLI_SCALAR, extent);
+        do_test_op_div<float>(SIMD_CONSTRUCTOR_MUTLI_SCALAR, extent);
+        do_test_op_div<double>(SIMD_CONSTRUCTOR_MUTLI_PTR_FLAG, extent);
+        do_test_op_div<float>(SIMD_CONSTRUCTOR_MUTLI_PTR_FLAG, extent);
+        do_test_op_div<double>(SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE, extent);
+        do_test_op_div<float>(SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE, extent);
+#ifdef __SSE2__
+        do_test_op_div<double>(SIMD_CONSTRUCTOR_MUTLI_SSE2, extent);
+        do_test_op_div<float>(SIMD_CONSTRUCTOR_MUTLI_SSE2, extent);
+#endif
     }
 }
 
 TEST(simd_math, test_copysign) {
     for (auto extent: extentArray) {
-        do_test_copysign<double>(extent);
-        do_test_copysign<float>(extent);
+        do_test_copysign<double>(SIMD_CONSTRUCTOR_SCALAR, extent);
+        do_test_copysign<float>(SIMD_CONSTRUCTOR_SCALAR, extent);
+        do_test_copysign<double>(SIMD_CONSTRUCTOR_MUTLI_SCALAR, extent);
+        do_test_copysign<float>(SIMD_CONSTRUCTOR_MUTLI_SCALAR, extent);
+        do_test_copysign<double>(SIMD_CONSTRUCTOR_MUTLI_PTR_FLAG, extent);
+        do_test_copysign<float>(SIMD_CONSTRUCTOR_MUTLI_PTR_FLAG, extent);
+        do_test_copysign<double>(SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE, extent);
+        do_test_copysign<float>(SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE, extent);
+#ifdef __SSE2__
+        do_test_copysign<double>(SIMD_CONSTRUCTOR_MUTLI_SSE2, extent);
+        do_test_copysign<float>(SIMD_CONSTRUCTOR_MUTLI_SSE2, extent);
+#endif
     }
 }
 
 TEST(simd_math, test_multiplysign) {
     for (auto extent: extentArray) {
-        do_test_multiplysign<double>(extent);
-        do_test_multiplysign<float>(extent);
+        do_test_multiplysign<double>(SIMD_CONSTRUCTOR_SCALAR, extent);
+        do_test_multiplysign<float>(SIMD_CONSTRUCTOR_SCALAR, extent);
+        do_test_multiplysign<double>(SIMD_CONSTRUCTOR_MUTLI_SCALAR, extent);
+        do_test_multiplysign<float>(SIMD_CONSTRUCTOR_MUTLI_SCALAR, extent);
+        do_test_multiplysign<double>(SIMD_CONSTRUCTOR_MUTLI_PTR_FLAG, extent);
+        do_test_multiplysign<float>(SIMD_CONSTRUCTOR_MUTLI_PTR_FLAG, extent);
+        do_test_multiplysign<double>(SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE, extent);
+        do_test_multiplysign<float>(SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE, extent);
+#ifdef __SSE2__
+        do_test_multiplysign<double>(SIMD_CONSTRUCTOR_MUTLI_SSE2, extent);
+        do_test_multiplysign<float>(SIMD_CONSTRUCTOR_MUTLI_SSE2, extent);
+#endif
     }
 }
 
