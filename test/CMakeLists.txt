@@ -25,6 +25,7 @@ list(APPEND
   unit_test_names
   TestMath
   TestSimdMask
+  TestSimdStorage
 )
 
 foreach(TEST_NAME ${unit_test_names})
