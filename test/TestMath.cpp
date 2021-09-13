@@ -53,8 +53,9 @@ enum SIMD_CONSTRUCTOR{
   SIMD_CONSTRUCTOR_MUTLI_SCALAR  = 1,
   SIMD_CONSTRUCTOR_MUTLI_PTR_FLAG  = 2,
   SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE  = 3,
+  SIMD_CONSTRUCTOR_STORAGE  = 4,
 #ifdef __SSE2__
-  SIMD_CONSTRUCTOR_MUTLI_SSE2  = 4,
+  SIMD_CONSTRUCTOR_MUTLI_SSE2  = 5,
 #endif
 };
 
@@ -62,6 +63,9 @@ namespace Test {
 
 template <typename ScalarType>
 using simd_t =    simd::simd<ScalarType, simd::simd_abi::native>;
+
+template <typename ScalarType>
+using storage_t = typename simd_t<ScalarType>::storage_type;
 
 // Method to create simd
 template<typename ScalarType>
@@ -81,6 +85,9 @@ simd_t<float> createSimd<float>(SIMD_CONSTRUCTOR constructor, int i) {
       case SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE:{
         float tab[4] = {static_cast<float>(i), static_cast<float>(i+1), static_cast<float>(i+2), static_cast<float>(i+3)};
         return simd_t<float>(tab, 1);
+      }
+      case SIMD_CONSTRUCTOR_STORAGE:{
+        return simd_t<float>(storage_t<float>(i));
       }
 #ifdef __SSE2__
       case SIMD_CONSTRUCTOR_MUTLI_SSE2:
@@ -103,6 +110,9 @@ simd_t<double> createSimd<double>(SIMD_CONSTRUCTOR constructor, int i) {
       case SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE:{
         double tab[4] = {static_cast<double>(i), static_cast<double>(i+1)};
         return simd_t<double>(tab, 1);
+      }
+      case SIMD_CONSTRUCTOR_STORAGE:{
+        return simd_t<double>(storage_t<double>(i));
       }
 #ifdef __SSE2__
       case SIMD_CONSTRUCTOR_MUTLI_SSE2:
@@ -330,7 +340,7 @@ void do_test_constructor(SIMD_CONSTRUCTOR constructor, int viewExtent) {
     for(int i = 0; i < viewExtent; ++i) {
 
         for(int j = 0; j < simdSize; ++j) {
-            if(constructor == SIMD_CONSTRUCTOR_SCALAR) {
+            if(constructor == SIMD_CONSTRUCTOR_SCALAR || constructor == SIMD_CONSTRUCTOR_STORAGE) {
                 expectedData[i * simdSize + j] = static_cast<ScalarType>(i);
             } else {
                 expectedData[i * simdSize + j] = static_cast<ScalarType>(i + j);
@@ -358,7 +368,7 @@ void do_test_abs(SIMD_CONSTRUCTOR constructor, int viewExtent) {
     for(int i = 0; i < viewExtent; ++i) {
 
         for(int j = 0; j < simdSize; ++j) {
-            if(constructor == SIMD_CONSTRUCTOR_SCALAR) {
+            if(constructor == SIMD_CONSTRUCTOR_SCALAR || constructor == SIMD_CONSTRUCTOR_STORAGE) {
                 expectedData[i * simdSize + j] = static_cast<ScalarType>(i);
             } else {
                 expectedData[i * simdSize + j] = static_cast<ScalarType>(i + j);
@@ -392,7 +402,7 @@ void do_test_sqrt(SIMD_CONSTRUCTOR constructor, int viewExtent) {
     for(int i = 0; i < viewExtent; ++i) {
 
         for(int j = 0; j < simdSize; ++j) {
-            if(constructor == SIMD_CONSTRUCTOR_SCALAR) {
+            if(constructor == SIMD_CONSTRUCTOR_SCALAR || constructor == SIMD_CONSTRUCTOR_STORAGE) {
                 expectedData[i * simdSize + j] = static_cast<ScalarType>(k);
             } else {
                 expectedData[i * simdSize + j] = static_cast<ScalarType>(k + j);
@@ -422,7 +432,7 @@ void do_test_cbrt(SIMD_CONSTRUCTOR constructor, int viewExtent) {
     for(int i = 0; i < viewExtent; ++i) {
 
         for(int j = 0; j < simdSize; ++j) {
-            if(constructor == SIMD_CONSTRUCTOR_SCALAR) {
+            if(constructor == SIMD_CONSTRUCTOR_SCALAR || constructor == SIMD_CONSTRUCTOR_STORAGE) {
                 expectedData[i * simdSize + j] = static_cast<ScalarType>(k);
             } else {
                 expectedData[i * simdSize + j] = static_cast<ScalarType>(k + j);
@@ -450,7 +460,7 @@ void do_test_exp(SIMD_CONSTRUCTOR constructor, int viewExtent) {
     ScalarType *expectedData = new ScalarType[expectedSize];
     for(int i = 0; i < viewExtent; ++i) {
         for(int j = 0; j < simdSize; ++j) {
-            if(constructor == SIMD_CONSTRUCTOR_SCALAR) {
+            if(constructor == SIMD_CONSTRUCTOR_SCALAR || constructor == SIMD_CONSTRUCTOR_STORAGE) {
                 expectedData[i * simdSize + j] = static_cast<ScalarType>(std::exp(i));
             } else {
                 expectedData[i * simdSize + j] = static_cast<ScalarType>(std::exp(i + j));
@@ -477,7 +487,7 @@ void do_test_fma(SIMD_CONSTRUCTOR constructor, int viewExtent) {
     ScalarType *expectedData = new ScalarType[expectedSize];
     for(int i = 0; i < viewExtent; ++i) {
         for(int j = 0; j < simdSize; ++j) {
-            if(constructor == SIMD_CONSTRUCTOR_SCALAR) {
+            if(constructor == SIMD_CONSTRUCTOR_SCALAR || constructor == SIMD_CONSTRUCTOR_STORAGE) {
                 expectedData[i * simdSize + j] = static_cast<ScalarType>(7.0 + 4*i);
             } else {
                 expectedData[i * simdSize + j] = static_cast<ScalarType>(7.0 + 4*(i + j));
@@ -492,7 +502,7 @@ void do_test_fma(SIMD_CONSTRUCTOR constructor, int viewExtent) {
     for(int i = 0; i < viewExtent; ++i) {
 
         for(int j = 0; j < simdSize; ++j) {
-            if(constructor == SIMD_CONSTRUCTOR_SCALAR) {
+            if(constructor == SIMD_CONSTRUCTOR_SCALAR || constructor == SIMD_CONSTRUCTOR_STORAGE) {
                 expectedData[i * simdSize + j] = static_cast<ScalarType>(7.0 - 4*i);
             } else {
                 expectedData[i * simdSize + j] = static_cast<ScalarType>(7.0 - 4*(i + j));
@@ -521,7 +531,7 @@ void do_test_max(SIMD_CONSTRUCTOR constructor, int viewExtent) {
     for(int i = 0; i < viewExtent; ++i) {
 
         for(int j = 0; j < simdSize; ++j) {
-            if(constructor == SIMD_CONSTRUCTOR_SCALAR) {
+            if(constructor == SIMD_CONSTRUCTOR_SCALAR || constructor == SIMD_CONSTRUCTOR_STORAGE) {
                 if( k  < 4) {
                     expectedData[i * simdSize + j] = static_cast<ScalarType>(10.0);
                 } else {
@@ -559,7 +569,7 @@ void do_test_min(SIMD_CONSTRUCTOR constructor, int viewExtent) {
     for(int i = 0; i < viewExtent; ++i) {
 
         for(int j = 0; j < simdSize; ++j) {
-            if(constructor == SIMD_CONSTRUCTOR_SCALAR) {
+            if(constructor == SIMD_CONSTRUCTOR_SCALAR || constructor == SIMD_CONSTRUCTOR_STORAGE) {
                 if( k  < 4) {
                     expectedData[i * simdSize + j] = static_cast<ScalarType>(k * k);
                 } else {
@@ -595,7 +605,7 @@ void do_test_op_add(SIMD_CONSTRUCTOR constructor, int viewExtent) {
     ScalarType *expectedData = new ScalarType[expectedSize];
     for(int i = 0; i < viewExtent; ++i) {
         for(int j = 0; j < simdSize; ++j) {
-            if(constructor == SIMD_CONSTRUCTOR_SCALAR) {
+            if(constructor == SIMD_CONSTRUCTOR_SCALAR || constructor == SIMD_CONSTRUCTOR_STORAGE) {
                 expectedData[i * simdSize + j] = static_cast<ScalarType>(4.0 + i);
             } else {
                 expectedData[i * simdSize + j] = static_cast<ScalarType>(4.0 + i + j);
@@ -622,7 +632,7 @@ void do_test_op_sub(SIMD_CONSTRUCTOR constructor, int viewExtent) {
     ScalarType *expectedData = new ScalarType[expectedSize];
     for(int i = 0; i < viewExtent; ++i) {
         for(int j = 0; j < simdSize; ++j) {
-            if(constructor == SIMD_CONSTRUCTOR_SCALAR) {
+            if(constructor == SIMD_CONSTRUCTOR_SCALAR || constructor == SIMD_CONSTRUCTOR_STORAGE) {
                 expectedData[i * simdSize + j] = static_cast<ScalarType>(-4.0 + i);
             } else {
                 expectedData[i * simdSize + j] = static_cast<ScalarType>(-4.0 + i + j);
@@ -649,7 +659,7 @@ void do_test_op_mul(SIMD_CONSTRUCTOR constructor, int viewExtent) {
     ScalarType *expectedData = new ScalarType[expectedSize];
     for(int i = 0; i < viewExtent; ++i) {
         for(int j = 0; j < simdSize; ++j) {
-            if(constructor == SIMD_CONSTRUCTOR_SCALAR) {
+            if(constructor == SIMD_CONSTRUCTOR_SCALAR || constructor == SIMD_CONSTRUCTOR_STORAGE) {
                 expectedData[i * simdSize + j] = static_cast<ScalarType>(4.0 * i);
             } else {
                 expectedData[i * simdSize + j] = static_cast<ScalarType>(4.0 * (i + j));
@@ -676,7 +686,7 @@ void do_test_op_div(SIMD_CONSTRUCTOR constructor, int viewExtent) {
     ScalarType *expectedData = new ScalarType[expectedSize];
     for(int i = 0; i < viewExtent; ++i) {
         for(int j = 0; j < simdSize; ++j) {
-            if(constructor == SIMD_CONSTRUCTOR_SCALAR) {
+            if(constructor == SIMD_CONSTRUCTOR_SCALAR || constructor == SIMD_CONSTRUCTOR_STORAGE) {
                 expectedData[i * simdSize + j] = static_cast<ScalarType>(i / 4.0);
             } else {
                 expectedData[i * simdSize + j] = static_cast<ScalarType>((i + j) / 4.0);
@@ -700,7 +710,7 @@ void do_test_copysign(SIMD_CONSTRUCTOR constructor, int viewExtent) {
     for(int i = 0; i < viewExtent; ++i) {
 
         for(int j = 0; j < simdSize; ++j) {
-            if(constructor == SIMD_CONSTRUCTOR_SCALAR) {
+            if(constructor == SIMD_CONSTRUCTOR_SCALAR || constructor == SIMD_CONSTRUCTOR_STORAGE) {
                 expectedData[i * simdSize + j] = static_cast<ScalarType>(i);
             } else {
                 expectedData[i * simdSize + j] = static_cast<ScalarType>(i + j);
@@ -745,7 +755,7 @@ void do_test_multiplysign(SIMD_CONSTRUCTOR constructor, int viewExtent) {
     for(int i = 0; i < viewExtent; ++i) {
 
         for(int j = 0; j < simdSize; ++j) {
-            if(constructor == SIMD_CONSTRUCTOR_SCALAR) {
+            if(constructor == SIMD_CONSTRUCTOR_SCALAR || constructor == SIMD_CONSTRUCTOR_STORAGE) {
                 expectedData[i * simdSize + j] = static_cast<ScalarType>(i);
             } else {
                 expectedData[i * simdSize + j] = static_cast<ScalarType>(i + j);
@@ -782,6 +792,8 @@ TEST(simd_math, test_constructor_1) {
         do_test_constructor<float>(SIMD_CONSTRUCTOR_MUTLI_PTR_FLAG, extent);
         do_test_constructor<double>(SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE, extent);
         do_test_constructor<float>(SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE, extent);
+        do_test_constructor<double>(SIMD_CONSTRUCTOR_STORAGE, extent);
+        do_test_constructor<float>(SIMD_CONSTRUCTOR_STORAGE, extent);
 #ifdef __SSE2__
         do_test_constructor<double>(SIMD_CONSTRUCTOR_MUTLI_SSE2, extent);
         do_test_constructor<float>(SIMD_CONSTRUCTOR_MUTLI_SSE2, extent);
