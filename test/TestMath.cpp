@@ -43,83 +43,10 @@
 
 #include <gtest/gtest.h>
 #include <Kokkos_Core.hpp>
+#include "TestHelpers.hpp"
 #include <simd.hpp>
 
-constexpr int extentArray[14] = {1,2,8,9,100,101,1000,1001,10000,10001,100000,100001,1000000,1000001};
-const int sqrtMaxIndex = 10000;
-const int cbrtMaxIndex = 5000;
-enum SIMD_CONSTRUCTOR{
-  SIMD_CONSTRUCTOR_SCALAR  = 0,
-  SIMD_CONSTRUCTOR_MUTLI_SCALAR  = 1,
-  SIMD_CONSTRUCTOR_MUTLI_PTR_FLAG  = 2,
-  SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE  = 3,
-  SIMD_CONSTRUCTOR_STORAGE  = 4,
-#ifdef __SSE2__
-  SIMD_CONSTRUCTOR_MUTLI_SSE2  = 5,
-#endif
-};
-
 namespace Test {
-
-template <typename ScalarType>
-using simd_t =    simd::simd<ScalarType, simd::simd_abi::native>;
-
-template <typename ScalarType>
-using storage_t = typename simd_t<ScalarType>::storage_type;
-
-// Method to create simd
-template<typename ScalarType>
-simd_t<ScalarType> createSimd(SIMD_CONSTRUCTOR constructor, int i);
-
-template<>
-simd_t<float> createSimd<float>(SIMD_CONSTRUCTOR constructor, int i) {
-    switch (constructor) {
-      case SIMD_CONSTRUCTOR_SCALAR:
-        return simd_t<float>{static_cast<float>(i)};
-      case SIMD_CONSTRUCTOR_MUTLI_SCALAR:
-        return simd_t<float>{static_cast<float>(i), static_cast<float>(i+1), static_cast<float>(i+2), static_cast<float>(i+3)};
-      case SIMD_CONSTRUCTOR_MUTLI_PTR_FLAG: {
-        float tab[4] = {static_cast<float>(i), static_cast<float>(i+1), static_cast<float>(i+2), static_cast<float>(i+3)};
-        return simd_t<float>(tab, 4.);
-        }
-      case SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE:{
-        float tab[4] = {static_cast<float>(i), static_cast<float>(i+1), static_cast<float>(i+2), static_cast<float>(i+3)};
-        return simd_t<float>(tab, 1);
-      }
-      case SIMD_CONSTRUCTOR_STORAGE:{
-        return simd_t<float>(storage_t<float>(i));
-      }
-#ifdef __SSE2__
-      case SIMD_CONSTRUCTOR_MUTLI_SSE2:
-        return simd_t<float>({static_cast<float>(i), static_cast<float>(i+1), static_cast<float>(i+2), static_cast<float>(i+3)});
-#endif
-    }
-}
-
-template<>
-simd_t<double> createSimd<double>(SIMD_CONSTRUCTOR constructor, int i) {
-    switch (constructor) {
-      case SIMD_CONSTRUCTOR_SCALAR:
-        return simd_t<double>{static_cast<double>(i)};
-      case SIMD_CONSTRUCTOR_MUTLI_SCALAR:
-        return simd_t<double>{static_cast<double>(i), static_cast<double>(i+1)};
-      case SIMD_CONSTRUCTOR_MUTLI_PTR_FLAG: {
-        double tab[4] = {static_cast<double>(i), static_cast<double>(i+1)};
-        return simd_t<double>(tab, 4.);
-        }
-      case SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE:{
-        double tab[4] = {static_cast<double>(i), static_cast<double>(i+1)};
-        return simd_t<double>(tab, 1);
-      }
-      case SIMD_CONSTRUCTOR_STORAGE:{
-        return simd_t<double>(storage_t<double>(i));
-      }
-#ifdef __SSE2__
-      case SIMD_CONSTRUCTOR_MUTLI_SSE2:
-        return simd_t<double>({static_cast<double>(i), static_cast<double>(i+1)});
-#endif
-    }
-}
 
 // Methods to create data
 template<class ValueType>
@@ -135,7 +62,7 @@ Kokkos::View<simd_t<ValueType> *> create_data_zero_to_size_positive(std::string 
     auto data_h = Kokkos::create_mirror_view(Kokkos::HostSpace(), data); // this lives on host
     for(size_t i = 0; i < data_h.extent(0); ++i)
     {
-        data_h(i) = createSimd<ValueType>(constructor,i);
+        data_h(i) = create_simd_data<ValueType>(constructor,i);
     }
     Kokkos::deep_copy(data, data_h);
 
@@ -148,7 +75,7 @@ Kokkos::View<simd_t<ValueType> *> create_data_zero_to_size_negative(std::string 
     auto data_h = Kokkos::create_mirror_view(Kokkos::HostSpace(), data); // this lives on host
     for(size_t i = 0; i < data_h.extent(0); ++i)
     {
-      data_h(i) = -createSimd<ValueType>(constructor,i);
+      data_h(i) = -create_simd_data<ValueType>(constructor,i);
     }
     Kokkos::deep_copy(data, data_h);
 
@@ -162,7 +89,7 @@ Kokkos::View<simd_t<ValueType> *> create_data_sqrt(std::string name, int size, S
     int j = 0; // We don't want a square higher than 10k *10k. After this  we restart the square from 0.
     for(size_t i = 0; i < data_h.extent(0); ++i)
     {
-      data_h(i) = createSimd<ValueType>(constructor,j) * createSimd<ValueType>(constructor,j);
+      data_h(i) = create_simd_data<ValueType>(constructor,j) * create_simd_data<ValueType>(constructor,j);
       j >= sqrtMaxIndex ? j = 0 : ++j;
     }
     Kokkos::deep_copy(data, data_h);
@@ -177,7 +104,7 @@ Kokkos::View<simd_t<ValueType> *> create_data_cbrt(std::string name, int size, S
     int j = 0; // We don't want a cbrt higher than 5k * 5k * 5k. After this  we restart the square from 0.
     for(size_t i = 0; i < data_h.extent(0); ++i)
     {
-      data_h(i) = createSimd<ValueType>(constructor,j) * createSimd<ValueType>(constructor,j) * createSimd<ValueType>(constructor,j);
+      data_h(i) = create_simd_data<ValueType>(constructor,j) * create_simd_data<ValueType>(constructor,j) * create_simd_data<ValueType>(constructor,j);
       j >= cbrtMaxIndex ? j = 0 : ++j;
 
     }
@@ -794,9 +721,9 @@ TEST(simd_math, test_constructor_1) {
         do_test_constructor<float>(SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE, extent);
         do_test_constructor<double>(SIMD_CONSTRUCTOR_STORAGE, extent);
         do_test_constructor<float>(SIMD_CONSTRUCTOR_STORAGE, extent);
-#ifdef __SSE2__
-        do_test_constructor<double>(SIMD_CONSTRUCTOR_MUTLI_SSE2, extent);
-        do_test_constructor<float>(SIMD_CONSTRUCTOR_MUTLI_SSE2, extent);
+#ifndef SIMD_USING_SCALAR_ABI
+        do_test_constructor<double>(SIMD_CONSTRUCTOR_SPECIALIZED, extent);
+        do_test_constructor<float>(SIMD_CONSTRUCTOR_SPECIALIZED, extent);
 #endif
     }
  }
@@ -811,9 +738,9 @@ TEST(simd_math, test_abs) {
         do_test_abs<float>(SIMD_CONSTRUCTOR_MUTLI_PTR_FLAG, extent);
         do_test_abs<double>(SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE, extent);
         do_test_abs<float>(SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE, extent);
-#ifdef __SSE2__
-        do_test_abs<double>(SIMD_CONSTRUCTOR_MUTLI_SSE2, extent);
-        do_test_abs<float>(SIMD_CONSTRUCTOR_MUTLI_SSE2, extent);
+#ifndef SIMD_USING_SCALAR_ABI
+        do_test_abs<double>(SIMD_CONSTRUCTOR_SPECIALIZED, extent);
+        do_test_abs<float>(SIMD_CONSTRUCTOR_SPECIALIZED, extent);
 #endif
     }
  }
@@ -828,9 +755,9 @@ TEST(simd_math, test_sqrt) {
         do_test_sqrt<float>(SIMD_CONSTRUCTOR_MUTLI_PTR_FLAG, extent);
         do_test_sqrt<double>(SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE, extent);
         do_test_sqrt<float>(SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE, extent);
-#ifdef __SSE2__
-        do_test_sqrt<double>(SIMD_CONSTRUCTOR_MUTLI_SSE2, extent);
-        do_test_sqrt<float>(SIMD_CONSTRUCTOR_MUTLI_SSE2, extent);
+#ifndef SIMD_USING_SCALAR_ABI
+        do_test_sqrt<double>(SIMD_CONSTRUCTOR_SPECIALIZED, extent);
+        do_test_sqrt<float>(SIMD_CONSTRUCTOR_SPECIALIZED, extent);
 #endif
     }
 }
@@ -845,9 +772,9 @@ TEST(simd_math, test_cbrt) {
         do_test_cbrt<float>(SIMD_CONSTRUCTOR_MUTLI_PTR_FLAG, extent);
         do_test_cbrt<double>(SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE, extent);
         do_test_cbrt<float>(SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE, extent);
-#ifdef __SSE2__
-        do_test_cbrt<double>(SIMD_CONSTRUCTOR_MUTLI_SSE2, extent);
-        do_test_cbrt<float>(SIMD_CONSTRUCTOR_MUTLI_SSE2, extent);
+#ifndef SIMD_USING_SCALAR_ABI
+        do_test_cbrt<double>(SIMD_CONSTRUCTOR_SPECIALIZED, extent);
+        do_test_cbrt<float>(SIMD_CONSTRUCTOR_SPECIALIZED, extent);
 #endif
     }
 }
@@ -862,9 +789,9 @@ TEST(simd_math, test_exp) {
         do_test_exp<float>(SIMD_CONSTRUCTOR_MUTLI_PTR_FLAG, extent);
         do_test_exp<double>(SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE, extent);
         do_test_exp<float>(SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE, extent);
-#ifdef __SSE2__
-        do_test_exp<double>(SIMD_CONSTRUCTOR_MUTLI_SSE2, extent);
-        do_test_exp<float>(SIMD_CONSTRUCTOR_MUTLI_SSE2, extent);
+#ifndef SIMD_USING_SCALAR_ABI
+        do_test_exp<double>(SIMD_CONSTRUCTOR_SPECIALIZED, extent);
+        do_test_exp<float>(SIMD_CONSTRUCTOR_SPECIALIZED, extent);
 #endif
     }
 }
@@ -879,9 +806,9 @@ TEST(simd_math, test_fma) {
         do_test_fma<float>(SIMD_CONSTRUCTOR_MUTLI_PTR_FLAG, extent);
         do_test_fma<double>(SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE, extent);
         do_test_fma<float>(SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE, extent);
-#ifdef __SSE2__
-        do_test_fma<double>(SIMD_CONSTRUCTOR_MUTLI_SSE2, extent);
-        do_test_fma<float>(SIMD_CONSTRUCTOR_MUTLI_SSE2, extent);
+#ifndef SIMD_USING_SCALAR_ABI
+        do_test_fma<double>(SIMD_CONSTRUCTOR_SPECIALIZED, extent);
+        do_test_fma<float>(SIMD_CONSTRUCTOR_SPECIALIZED, extent);
 #endif
     }
 }
@@ -896,9 +823,9 @@ TEST(simd_math, test_max) {
         do_test_max<float>(SIMD_CONSTRUCTOR_MUTLI_PTR_FLAG, extent);
         do_test_max<double>(SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE, extent);
         do_test_max<float>(SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE, extent);
-#ifdef __SSE2__
-        do_test_max<double>(SIMD_CONSTRUCTOR_MUTLI_SSE2, extent);
-        do_test_max<float>(SIMD_CONSTRUCTOR_MUTLI_SSE2, extent);
+#ifndef SIMD_USING_SCALAR_ABI
+        do_test_max<double>(SIMD_CONSTRUCTOR_SPECIALIZED, extent);
+        do_test_max<float>(SIMD_CONSTRUCTOR_SPECIALIZED, extent);
 #endif
     }
 }
@@ -913,9 +840,9 @@ TEST(simd_math, test_min) {
         do_test_min<float>(SIMD_CONSTRUCTOR_MUTLI_PTR_FLAG, extent);
         do_test_min<double>(SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE, extent);
         do_test_min<float>(SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE, extent);
-#ifdef __SSE2__
-        do_test_min<double>(SIMD_CONSTRUCTOR_MUTLI_SSE2, extent);
-        do_test_min<float>(SIMD_CONSTRUCTOR_MUTLI_SSE2, extent);
+#ifndef SIMD_USING_SCALAR_ABI
+        do_test_min<double>(SIMD_CONSTRUCTOR_SPECIALIZED, extent);
+        do_test_min<float>(SIMD_CONSTRUCTOR_SPECIALIZED, extent);
 #endif
     }
 }
@@ -930,9 +857,9 @@ TEST(simd_math, test_op_add) {
         do_test_op_add<float>(SIMD_CONSTRUCTOR_MUTLI_PTR_FLAG, extent);
         do_test_op_add<double>(SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE, extent);
         do_test_op_add<float>(SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE, extent);
-#ifdef __SSE2__
-        do_test_op_add<double>(SIMD_CONSTRUCTOR_MUTLI_SSE2, extent);
-        do_test_op_add<float>(SIMD_CONSTRUCTOR_MUTLI_SSE2, extent);
+#ifndef SIMD_USING_SCALAR_ABI
+        do_test_op_add<double>(SIMD_CONSTRUCTOR_SPECIALIZED, extent);
+        do_test_op_add<float>(SIMD_CONSTRUCTOR_SPECIALIZED, extent);
 #endif
     }
 }
@@ -947,9 +874,9 @@ TEST(simd_math, test_op_sub) {
         do_test_op_sub<float>(SIMD_CONSTRUCTOR_MUTLI_PTR_FLAG, extent);
         do_test_op_sub<double>(SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE, extent);
         do_test_op_sub<float>(SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE, extent);
-#ifdef __SSE2__
-        do_test_op_sub<double>(SIMD_CONSTRUCTOR_MUTLI_SSE2, extent);
-        do_test_op_sub<float>(SIMD_CONSTRUCTOR_MUTLI_SSE2, extent);
+#ifndef SIMD_USING_SCALAR_ABI
+        do_test_op_sub<double>(SIMD_CONSTRUCTOR_SPECIALIZED, extent);
+        do_test_op_sub<float>(SIMD_CONSTRUCTOR_SPECIALIZED, extent);
 #endif
     }
 }
@@ -964,9 +891,9 @@ TEST(simd_math, test_op_mul) {
         do_test_op_mul<float>(SIMD_CONSTRUCTOR_MUTLI_PTR_FLAG, extent);
         do_test_op_mul<double>(SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE, extent);
         do_test_op_mul<float>(SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE, extent);
-#ifdef __SSE2__
-        do_test_op_mul<double>(SIMD_CONSTRUCTOR_MUTLI_SSE2, extent);
-        do_test_op_mul<float>(SIMD_CONSTRUCTOR_MUTLI_SSE2, extent);
+#ifndef SIMD_USING_SCALAR_ABI
+        do_test_op_mul<double>(SIMD_CONSTRUCTOR_SPECIALIZED, extent);
+        do_test_op_mul<float>(SIMD_CONSTRUCTOR_SPECIALIZED, extent);
 #endif
     }
 }
@@ -981,9 +908,9 @@ TEST(simd_math, test_op_div) {
         do_test_op_div<float>(SIMD_CONSTRUCTOR_MUTLI_PTR_FLAG, extent);
         do_test_op_div<double>(SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE, extent);
         do_test_op_div<float>(SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE, extent);
-#ifdef __SSE2__
-        do_test_op_div<double>(SIMD_CONSTRUCTOR_MUTLI_SSE2, extent);
-        do_test_op_div<float>(SIMD_CONSTRUCTOR_MUTLI_SSE2, extent);
+#ifndef SIMD_USING_SCALAR_ABI
+        do_test_op_div<double>(SIMD_CONSTRUCTOR_SPECIALIZED, extent);
+        do_test_op_div<float>(SIMD_CONSTRUCTOR_SPECIALIZED, extent);
 #endif
     }
 }
@@ -998,9 +925,9 @@ TEST(simd_math, test_copysign) {
         do_test_copysign<float>(SIMD_CONSTRUCTOR_MUTLI_PTR_FLAG, extent);
         do_test_copysign<double>(SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE, extent);
         do_test_copysign<float>(SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE, extent);
-#ifdef __SSE2__
-        do_test_copysign<double>(SIMD_CONSTRUCTOR_MUTLI_SSE2, extent);
-        do_test_copysign<float>(SIMD_CONSTRUCTOR_MUTLI_SSE2, extent);
+#ifndef SIMD_USING_SCALAR_ABI
+        do_test_copysign<double>(SIMD_CONSTRUCTOR_SPECIALIZED, extent);
+        do_test_copysign<float>(SIMD_CONSTRUCTOR_SPECIALIZED, extent);
 #endif
     }
 }
@@ -1015,9 +942,9 @@ TEST(simd_math, test_multiplysign) {
         do_test_multiplysign<float>(SIMD_CONSTRUCTOR_MUTLI_PTR_FLAG, extent);
         do_test_multiplysign<double>(SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE, extent);
         do_test_multiplysign<float>(SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE, extent);
-#ifdef __SSE2__
-        do_test_multiplysign<double>(SIMD_CONSTRUCTOR_MUTLI_SSE2, extent);
-        do_test_multiplysign<float>(SIMD_CONSTRUCTOR_MUTLI_SSE2, extent);
+#ifndef SIMD_USING_SCALAR_ABI
+        do_test_multiplysign<double>(SIMD_CONSTRUCTOR_SPECIALIZED, extent);
+        do_test_multiplysign<float>(SIMD_CONSTRUCTOR_SPECIALIZED, extent);
 #endif
     }
 }
