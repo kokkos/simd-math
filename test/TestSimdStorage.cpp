@@ -104,20 +104,25 @@ void do_simd_storage_basic_api_test() {
   const storage_t<ScalarType> storage_by_simd(simd::simd<ScalarType, simd::simd_abi::native>{4.0});
   const storage_t<ScalarType> storage_by_value(6.0);
   const storage_t<ScalarType> storage_by_copy(storage_by_simd);
+  storage_t<ScalarType> storage_by_affectation;
+  storage_by_affectation = simd::simd<ScalarType, simd::simd_abi::native>{6.0};
 
   // check size aren't null
   EXPECT_GT(storage_by_simd.size(), 0);
   EXPECT_GT(storage_by_value.size(), 0);
   EXPECT_GT(storage_by_copy.size(), 0);
+  EXPECT_GT(storage_by_affectation.size(), 0);
 
   // verify content using all methods
   check_storage_const_content<ScalarType>(storage_by_simd, 4.0);
   check_storage_const_content<ScalarType>(storage_by_value, 6.0);
   check_storage_const_content<ScalarType>(storage_by_copy, 4.0);
+  check_storage_const_content<ScalarType>(storage_by_affectation, 6.0);
 
   check_storage_content<ScalarType>(storage_by_simd, 4.0);
   check_storage_content<ScalarType>(storage_by_value, 6.0);
   check_storage_content<ScalarType>(storage_by_copy, 4.0);
+  check_storage_content<ScalarType>(storage_by_affectation, 6.0);
 }
 
 TEST(simd_storage, simd_storage_basic_api) {
