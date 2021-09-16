@@ -93,7 +93,7 @@ simd_t<ScalarType> create_simd_data(SIMD_CONSTRUCTOR constructor,
 template <typename ScalarType, std::size_t vectorLength>
 simd_t<ScalarType> create_simd_data(SIMD_CONSTRUCTOR constructor, ScalarType i);
 
-#if defined(SIMD_FORCE_SCALAR)
+#if defined(SIMD_USING_SCALAR_ABI)
 template <>
 simd_t<float> create_simd_data<float, 1>(SIMD_CONSTRUCTOR constructor,
                                          float i) {
@@ -127,9 +127,8 @@ simd_t<double> create_simd_data<double, 1>(SIMD_CONSTRUCTOR constructor,
     default: return simd_t<double>{i};
   }
 }
-#endif
 
-#ifndef SIMD_USING_SCALAR_ABI
+#else
 
 #if defined(__VSX__) || defined(__SSE2__) || defined(__SSE__) || \
     (defined(__ARM_NEON) && !defined(__ARM_FEATURE_SVE_BITS) &&  \
