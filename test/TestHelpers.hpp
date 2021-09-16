@@ -175,7 +175,7 @@ simd_t<double> create_simd_data<double, 2>(SIMD_CONSTRUCTOR constructor,
   }
 }
 #elif !defined(SIMD_FORCE_SCALAR) && !defined(__CUDACC__) && !defined(__HIPCC__) && \
-    !defined(__AVX512F__) && !defined(avx512) && !defined(__AVX__)  &&  !defined(__SSE2__)\
+    !defined(__AVX512F__) && !defined(avx512) && !defined(__AVX__)  &&  !defined(__SSE2__) &&\
     (!(defined(__ARM_NEON) && !defined(__ARM_FEATURE_SVE_BITS) && !defined(__ARM_FEATURE_SVE))) && \
     !defined(__VSX__) && !defined(SIMD_ENABLE_VECTOR_SIZE)
 // from simd.hpp: native = pack<8>
