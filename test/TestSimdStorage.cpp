@@ -101,11 +101,11 @@ template <typename ScalarType>
 void do_simd_storage_basic_api_test() {
 
   // constructs storage using all constructors
-  const storage_t<ScalarType> storage_by_simd(simd::simd<ScalarType, simd::simd_abi::native>{4.0});
+  const storage_t<ScalarType> storage_by_simd(simd_t<ScalarType>{4.0});
   const storage_t<ScalarType> storage_by_value(6.0);
   const storage_t<ScalarType> storage_by_copy(storage_by_simd);
   storage_t<ScalarType> storage_by_affectation;
-  storage_by_affectation = simd::simd<ScalarType, simd::simd_abi::native>{6.0};
+  storage_by_affectation = simd_t<ScalarType>{6.0};
 
   // check size aren't null
   EXPECT_GT(storage_by_simd.size(), 0);

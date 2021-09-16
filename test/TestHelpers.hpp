@@ -93,6 +93,7 @@ simd_t<ScalarType> create_simd_data(SIMD_CONSTRUCTOR constructor,
 template <typename ScalarType, std::size_t vectorLength>
 simd_t<ScalarType> create_simd_data(SIMD_CONSTRUCTOR constructor, ScalarType i);
 
+#if defined(SIMD_FORCE_SCALAR)
 template <>
 simd_t<float> create_simd_data<float, 1>(SIMD_CONSTRUCTOR constructor,
                                          float i) {
@@ -126,6 +127,7 @@ simd_t<double> create_simd_data<double, 1>(SIMD_CONSTRUCTOR constructor,
     default: return simd_t<double>{i};
   }
 }
+#endif
 
 #ifndef SIMD_USING_SCALAR_ABI
 
@@ -168,6 +170,51 @@ simd_t<double> create_simd_data<double, 2>(SIMD_CONSTRUCTOR constructor,
     case SIMD_CONSTRUCTOR_STORAGE: return simd_t<double>(storage_t<double>(i));
     case SIMD_CONSTRUCTOR_SPECIALIZED:
       return simd_t<double>({array[0], array[1]});
+    case SIMD_CONSTRUCTOR_SCALAR:
+    default: return simd_t<double>{i};
+  }
+}
+#elif !defined(SIMD_FORCE_SCALAR) && !defined(__CUDACC__) && !defined(__HIPCC__) && \
+    !defined(__AVX512F__) && !defined(avx512) && !defined(__AVX__)  &&  !defined(__SSE2__)\
+    (!(defined(__ARM_NEON) && !defined(__ARM_FEATURE_SVE_BITS) && !defined(__ARM_FEATURE_SVE))) && \
+    !defined(__VSX__) && !defined(SIMD_ENABLE_VECTOR_SIZE)
+// from simd.hpp: native = pack<8>
+template <>
+simd_t<float> create_simd_data<float, 8>(SIMD_CONSTRUCTOR constructor,
+                                         float i) {
+  constexpr auto num_scalars = 8;
+  float array[num_scalars];
+  for(int j = 0; j<8; ++j){
+      array[j] = j+i;
+    }
+
+  switch (constructor) {
+  case SIMD_CONSTRUCTOR_SPECIALIZED:
+  case SIMD_CONSTRUCTOR_MUTLI_SCALAR:
+  case SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE:
+  case SIMD_CONSTRUCTOR_MUTLI_PTR_FLAG:
+      return simd_t<float>(array, simd::element_aligned_tag());
+    case SIMD_CONSTRUCTOR_STORAGE: return simd_t<float>(storage_t<float>(i));
+    case SIMD_CONSTRUCTOR_SCALAR:
+    default: return simd_t<float>{i};
+  }
+}
+
+template <>
+simd_t<double> create_simd_data<double, 8>(SIMD_CONSTRUCTOR constructor,
+                                           double i) {
+  constexpr auto num_scalars = 8;
+  double array[num_scalars];
+  for(int j = 0; j<8; ++j){
+      array[j] = j+i;
+    }
+  switch (constructor) {
+  case SIMD_CONSTRUCTOR_SPECIALIZED:
+  case SIMD_CONSTRUCTOR_MUTLI_SCALAR:
+  case SIMD_CONSTRUCTOR_MUTLI_PTR_STRIDE:
+  case SIMD_CONSTRUCTOR_MUTLI_PTR_FLAG:
+      return simd_t<double>(array, simd::element_aligned_tag());
+    case SIMD_CONSTRUCTOR_STORAGE: return simd_t<double>(storage_t<double>(i));
     case SIMD_CONSTRUCTOR_SCALAR:
     default: return simd_t<double>{i};
   }
