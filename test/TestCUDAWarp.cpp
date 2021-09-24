@@ -197,6 +197,35 @@ void test_cbrt(Kokkos::View<StorageType *> data) {
   Kokkos::fence();
 }
 
+template <class StorageType>
+void test_exp(Kokkos::View<StorageType *> data) {
+  Kokkos::parallel_for(
+      "simd::exp", Kokkos::TeamPolicy<>(data.extent(0), 1, StorageType::size()),
+      KOKKOS_LAMBDA(const Kokkos::TeamPolicy<>::member_type &team) {
+        auto i = team.league_rank();
+        data(i) =
+            simd::exp(simd_warp_t<typename StorageType::value_type>(data(i)));
+      });
+
+  Kokkos::fence();
+}
+
+template <class StorageType>
+void test_fma(Kokkos::View<StorageType *> data,
+              simd_warp_t<typename StorageType::value_type> val_1,
+              simd_warp_t<typename StorageType::value_type> val_2) {
+  Kokkos::parallel_for(
+      "simd::fma", Kokkos::TeamPolicy<>(data.extent(0), 1, StorageType::size()),
+      KOKKOS_LAMBDA(const Kokkos::TeamPolicy<>::member_type &team) {
+        auto i = team.league_rank();
+        data(i) =
+            simd::fma(simd_warp_t<typename StorageType::value_type>(data(i)),
+                      val_1, val_2);
+      });
+
+  Kokkos::fence();
+}
+
 template <typename ScalarType>
 void do_test_abs(int viewExtent) {
   using storage_t        = simd_storage_t<ScalarType>;
@@ -295,6 +324,77 @@ void do_test_cbrt(int viewExtent) {
   test_view_result("test_cbrt_2", data, expectedData);
 }
 
+template <typename ScalarType>
+void do_test_exp(int viewExtent) {
+  using storage_t        = simd_storage_t<ScalarType>;
+  const int simdSize     = storage_t::size();
+  const int expectedSize = viewExtent * storage_t::size();
+
+  auto data = create_data_with_unique_value<storage_t>("Test View", viewExtent,
+                                                       ScalarType{1});
+
+  test_exp(data);
+
+  Kokkos::View<ScalarType *, Kokkos::HostSpace> expectedData("expectedData",
+                                                             expectedSize);
+  Kokkos::deep_copy(expectedData, static_cast<ScalarType>(std::exp(1.0)));
+
+  test_view_result("test_exp_1", data, expectedData);
+
+  data = create_data_positive<storage_t>("Test View 2", viewExtent);
+
+  for (int i = 0; i < viewExtent; ++i) {
+    for (int j = 0; j < simdSize; ++j) {
+      const auto index    = i * simdSize + j;
+      expectedData(index) = static_cast<ScalarType>(std::exp(index));
+    }
+  }
+
+  test_exp(data);
+  test_view_result("test_exp_2", data, expectedData);
+}
+
+template <typename ScalarType>
+void do_test_fma(int viewExtent) {
+  using storage_t        = simd_storage_t<ScalarType>;
+  const int simdSize     = storage_t::size();
+  const int expectedSize = viewExtent * storage_t::size();
+
+  auto data = create_data_with_unique_value<storage_t>("Test View", viewExtent,
+                                                       ScalarType{-4});
+
+  test_fma(data, simd_warp_t<ScalarType>{2.0}, simd_warp_t<ScalarType>{5.0});
+
+  Kokkos::View<ScalarType *, Kokkos::HostSpace> expectedData("expectedData",
+                                                             expectedSize);
+  Kokkos::deep_copy(expectedData, static_cast<ScalarType>(-3.0));
+
+  test_view_result("test_fma_1", data, expectedData);
+
+  data = create_data_positive<storage_t>("Test View 2", viewExtent);
+
+  for (int i = 0; i < viewExtent; ++i) {
+    for (int j = 0; j < simdSize; ++j) {
+      const auto index    = i * simdSize + j;
+      expectedData(index) = static_cast<ScalarType>(7.0 + 4 * (index));
+    }
+  }
+
+  test_fma(data, simd_warp_t<ScalarType>{4.0}, simd_warp_t<ScalarType>{7.0});
+  test_view_result("test_fma_2", data, expectedData);
+
+  data = create_data_negative<storage_t>("Test View 2", viewExtent);
+  for (int i = 0; i < viewExtent; ++i) {
+    for (int j = 0; j < simdSize; ++j) {
+      const auto index    = i * simdSize + j;
+      expectedData(index) = static_cast<ScalarType>(7.0 - 4 * (index));
+    }
+  }
+
+  test_fma(data, simd_warp_t<ScalarType>{4.0}, simd_warp_t<ScalarType>{7.0});
+  test_view_result("test_fma_3", data, expectedData);
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -325,18 +425,19 @@ TYPED_TEST_P(TestCudaWarp, test_cbrt) {
   do_test_cbrt<ScalarType>(extentSize);
 }
 
-// TEST(simd_cuda_warp, test_exp) {
-//   int N_in = 64;
-//   double a = 2.0;
-//   int N    = N_in / simd_warp_t<double>::size();
+TYPED_TEST_P(TestCudaWarp, test_exp) {
+  constexpr auto extentSize = std::tuple_element<0, TypeParam>::type::value;
+  using ScalarType          = typename std::tuple_element<1, TypeParam>::type;
 
-//   auto data = create_simd_data_cbrt<simd_storage_t>("whatever", N);
+  do_test_exp<ScalarType>(extentSize);
+}
 
-//   Kokkos::View<simd_storage_t *> results("R", N);
+TYPED_TEST_P(TestCudaWarp, test_fma) {
+  constexpr auto extentSize = std::tuple_element<0, TypeParam>::type::value;
+  using ScalarType          = typename std::tuple_element<1, TypeParam>::type;
 
-//   test_warp_add(data, results);
-//   verify(results, N_in);
-// }
+  do_test_fma<ScalarType>(extentSize);
+}
 
 using TestTypes =
     testing::Types<std::tuple<std::integral_constant<int, 1>, float>,
@@ -357,7 +458,8 @@ using TestTypes =
                    std::tuple<std::integral_constant<int, 1000>, double>,
                    std::tuple<std::integral_constant<int, 1001>, double>>;
 
-REGISTER_TYPED_TEST_SUITE_P(TestCudaWarp, test_abs, test_sqrt, test_cbrt);
+REGISTER_TYPED_TEST_SUITE_P(TestCudaWarp, test_abs, test_sqrt, test_cbrt,
+                            test_exp, test_fma);
 
 INSTANTIATE_TYPED_TEST_SUITE_P(test_simd_cuda_warp_set, TestCudaWarp,
                                TestTypes);
