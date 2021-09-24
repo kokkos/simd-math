@@ -226,6 +226,20 @@ void test_fma(Kokkos::View<StorageType *> data,
   Kokkos::fence();
 }
 
+template <class StorageType>
+void test_max(Kokkos::View<StorageType *> data,
+              simd_warp_t<typename StorageType::value_type> val) {
+  Kokkos::parallel_for(
+      "simd::max", Kokkos::TeamPolicy<>(data.extent(0), 1, StorageType::size()),
+      KOKKOS_LAMBDA(const Kokkos::TeamPolicy<>::member_type &team) {
+        auto i  = team.league_rank();
+        data(i) = simd::max(
+            simd_warp_t<typename StorageType::value_type>(data(i)), val);
+      });
+
+  Kokkos::fence();
+}
+
 template <typename ScalarType>
 void do_test_abs(int viewExtent) {
   using storage_t        = simd_storage_t<ScalarType>;
@@ -395,6 +409,37 @@ void do_test_fma(int viewExtent) {
   test_view_result("test_fma_3", data, expectedData);
 }
 
+template <typename ScalarType>
+void do_test_max(int viewExtent) {
+  using storage_t        = simd_storage_t<ScalarType>;
+  const int simdSize     = storage_t::size();
+  const int expectedSize = viewExtent * storage_t::size();
+
+  auto data = create_data_with_unique_value<storage_t>("Test View", viewExtent,
+                                                       ScalarType{1.0});
+
+  test_max(data, simd_warp_t<ScalarType>{10.0});
+  Kokkos::View<ScalarType *, Kokkos::HostSpace> expectedData("expectedData",
+                                                             expectedSize);
+  Kokkos::deep_copy(expectedData, static_cast<ScalarType>(10.0));
+
+  test_view_result("test_max_1", data, expectedData);
+
+  data = create_simd_data_sqrt<storage_t>("Test View 2", viewExtent);
+
+
+  for (int i = 0; i < viewExtent; ++i) {
+    for (int j = 0; j < simdSize; ++j) {
+      const auto index = i * simdSize + j;
+      const ScalarType value = index % sqrtMaxIndex;
+      expectedData(index) = std::max(ScalarType{10.0}, value * value);
+    }
+  }
+
+  test_max(data, simd_warp_t<ScalarType>{10.0});
+  test_view_result("test_max_2", data, expectedData);
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -439,6 +484,13 @@ TYPED_TEST_P(TestCudaWarp, test_fma) {
   do_test_fma<ScalarType>(extentSize);
 }
 
+TYPED_TEST_P(TestCudaWarp, test_max) {
+  constexpr auto extentSize = std::tuple_element<0, TypeParam>::type::value;
+  using ScalarType          = typename std::tuple_element<1, TypeParam>::type;
+
+  do_test_max<ScalarType>(extentSize);
+}
+
 using TestTypes =
     testing::Types<std::tuple<std::integral_constant<int, 1>, float>,
                    std::tuple<std::integral_constant<int, 2>, float>,
@@ -459,7 +511,7 @@ using TestTypes =
                    std::tuple<std::integral_constant<int, 1001>, double>>;
 
 REGISTER_TYPED_TEST_SUITE_P(TestCudaWarp, test_abs, test_sqrt, test_cbrt,
-                            test_exp, test_fma);
+                            test_exp, test_fma, test_max);
 
 INSTANTIATE_TYPED_TEST_SUITE_P(test_simd_cuda_warp_set, TestCudaWarp,
                                TestTypes);
