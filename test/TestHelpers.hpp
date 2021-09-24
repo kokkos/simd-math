@@ -411,14 +411,14 @@ template <>
 void compare(const std::string &test_name, int i, double value,
              double expected) {
   EXPECT_DOUBLE_EQ(value, expected)
-      << "Failure during " + test_name + " with i = " + std::to_string(i);
+      << "Failure during " + test_name + "<double> with i = " + std::to_string(i);
   ;
 }
 
 template <>
 void compare(const std::string &test_name, int i, float value, float expected) {
   EXPECT_FLOAT_EQ(value, expected)
-      << "Failure during " + test_name + " with i = " + std::to_string(i);
+      << "Failure during " + test_name + "<float> with i = " + std::to_string(i);
   ;
 }
 

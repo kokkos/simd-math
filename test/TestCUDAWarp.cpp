@@ -99,8 +99,8 @@ Kokkos::View<StorageType *> create_simd_data_sqrt(std::string name, int size) {
 
   Kokkos::parallel_for(
       data_scalar.extent(0), KOKKOS_LAMBDA(const int i) {
-        auto value     = i >= sqrtMaxIndex ? i - sqrtMaxIndex : i;
-        data_scalar(i) = static_cast<ScalarType>(value * value);
+        ScalarType value = i % sqrtMaxIndex;
+        data_scalar(i)   = static_cast<ScalarType>(value * value);
       });
 
   return data;
@@ -116,8 +116,8 @@ Kokkos::View<StorageType *> create_simd_data_cbrt(std::string name, int size) {
 
   Kokkos::parallel_for(
       data_scalar.extent(0), KOKKOS_LAMBDA(const int i) {
-        auto value     = i >= cbrtMaxIndex ? i - cbrtMaxIndex : i;
-        data_scalar(i) = static_cast<ScalarType>(value * value * value);
+        ScalarType value = i % cbrtMaxIndex;
+        data_scalar(i)   = static_cast<ScalarType>(value * value * value);
       });
 
   return data;
@@ -183,6 +183,20 @@ void test_sqrt(Kokkos::View<StorageType *> data) {
   Kokkos::fence();
 }
 
+template <class StorageType>
+void test_cbrt(Kokkos::View<StorageType *> data) {
+  Kokkos::parallel_for(
+      "simd::cbrt",
+      Kokkos::TeamPolicy<>(data.extent(0), 1, StorageType::size()),
+      KOKKOS_LAMBDA(const Kokkos::TeamPolicy<>::member_type &team) {
+        auto i = team.league_rank();
+        data(i) =
+            simd::cbrt(simd_warp_t<typename StorageType::value_type>(data(i)));
+      });
+
+  Kokkos::fence();
+}
+
 template <typename ScalarType>
 void do_test_abs(int viewExtent) {
   using storage_t        = simd_storage_t<ScalarType>;
@@ -237,14 +251,48 @@ void do_test_sqrt(int viewExtent) {
 
   for (int i = 0; i < viewExtent; ++i) {
     for (int j = 0; j < simdSize; ++j) {
-      auto index = i * simdSize + j;
-      auto value = index >= sqrtMaxIndex ? index - sqrtMaxIndex : index;
-      expectedData(index) = static_cast<ScalarType>(value);
+      const auto index    = i * simdSize + j;
+      expectedData(index) = index % sqrtMaxIndex;
     }
   }
 
   test_sqrt(data);
   test_view_result("test_sqrt_2", data, expectedData);
+}
+
+template <typename ScalarType>
+void do_test_cbrt(int viewExtent) {
+  using storage_t        = simd_storage_t<ScalarType>;
+  const int simdSize     = storage_t::size();
+  const int expectedSize = viewExtent * storage_t::size();
+
+  auto data = create_data_with_unique_value<storage_t>("Test View", viewExtent,
+                                                       ScalarType{27});
+
+  test_cbrt(data);
+
+  Kokkos::View<ScalarType *, Kokkos::HostSpace> expectedData("expectedData",
+                                                             expectedSize);
+  Kokkos::deep_copy(expectedData, static_cast<ScalarType>(3.0));
+
+  test_view_result("test_cbrt_1", data, expectedData);
+
+  data = create_simd_data_cbrt<storage_t>("Test View 2", viewExtent);
+
+  Kokkos::View<ScalarType *> results_scalar((ScalarType *)data.data(),
+                                            data.extent(0) * storage_t::size());
+  auto results_h = Kokkos::create_mirror_view(results_scalar);
+  Kokkos::deep_copy(results_h, results_scalar);
+
+  for (int i = 0; i < viewExtent; ++i) {
+    for (int j = 0; j < simdSize; ++j) {
+      auto index          = i * simdSize + j;
+      expectedData(index) = static_cast<ScalarType>(index % cbrtMaxIndex);
+    }
+  }
+
+  test_cbrt(data);
+  test_view_result("test_cbrt_2", data, expectedData);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -270,18 +318,12 @@ TYPED_TEST_P(TestCudaWarp, test_sqrt) {
   do_test_sqrt<ScalarType>(extentSize);
 }
 
-// TEST(simd_cuda_warp, test_cbrt) {
-//   int N_in = 64;
-//   double a = 2.0;
-//   int N    = N_in / simd_warp_t<double>::size();
+TYPED_TEST_P(TestCudaWarp, test_cbrt) {
+  constexpr auto extentSize = std::tuple_element<0, TypeParam>::type::value;
+  using ScalarType          = typename std::tuple_element<1, TypeParam>::type;
 
-//   auto data = create_simd_data_cbrt<simd_storage_t>("whatever", N);
-
-//   Kokkos::View<simd_storage_t *> results("R", N);
-
-//   test_warp_add(data, results);
-//   verify(results, N_in);
-// }
+  do_test_cbrt<ScalarType>(extentSize);
+}
 
 // TEST(simd_cuda_warp, test_exp) {
 //   int N_in = 64;
@@ -315,7 +357,7 @@ using TestTypes =
                    std::tuple<std::integral_constant<int, 1000>, double>,
                    std::tuple<std::integral_constant<int, 1001>, double>>;
 
-REGISTER_TYPED_TEST_SUITE_P(TestCudaWarp, test_abs, test_sqrt);
+REGISTER_TYPED_TEST_SUITE_P(TestCudaWarp, test_abs, test_sqrt, test_cbrt);
 
 INSTANTIATE_TYPED_TEST_SUITE_P(test_simd_cuda_warp_set, TestCudaWarp,
                                TestTypes);
