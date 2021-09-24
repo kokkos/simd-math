@@ -732,6 +732,7 @@ TYPED_TEST_P(TestCudaWarp, test_multiply) {
 
   do_test_multiply<ScalarType>(extentSize);
 }
+
 TYPED_TEST_P(TestCudaWarp, test_divide) {
   constexpr auto extentSize = std::tuple_element<0, TypeParam>::type::value;
   using ScalarType          = typename std::tuple_element<1, TypeParam>::type;
@@ -748,6 +749,10 @@ using TestTypes =
                    std::tuple<std::integral_constant<int, 101>, float>,
                    std::tuple<std::integral_constant<int, 1000>, float>,
                    std::tuple<std::integral_constant<int, 1001>, float>,
+                   std::tuple<std::integral_constant<int, 10000>, float>,
+                   std::tuple<std::integral_constant<int, 10001>, float>,
+                   std::tuple<std::integral_constant<int, 100000>, float>,
+                   std::tuple<std::integral_constant<int, 100001>, float>,
 
                    std::tuple<std::integral_constant<int, 1>, double>,
                    std::tuple<std::integral_constant<int, 2>, double>,
@@ -756,7 +761,11 @@ using TestTypes =
                    std::tuple<std::integral_constant<int, 100>, double>,
                    std::tuple<std::integral_constant<int, 101>, double>,
                    std::tuple<std::integral_constant<int, 1000>, double>,
-                   std::tuple<std::integral_constant<int, 1001>, double>>;
+                   std::tuple<std::integral_constant<int, 1001>, double>,
+                   std::tuple<std::integral_constant<int, 10000>, double>,
+                   std::tuple<std::integral_constant<int, 10001>, double>,
+                   std::tuple<std::integral_constant<int, 100000>, double>,
+                   std::tuple<std::integral_constant<int, 100001>, double>>;
 
 REGISTER_TYPED_TEST_SUITE_P(TestCudaWarp, test_abs, test_sqrt, test_cbrt,
                             test_exp, test_fma, test_max, test_min, test_add,
