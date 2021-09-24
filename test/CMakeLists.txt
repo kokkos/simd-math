@@ -26,6 +26,7 @@ list(APPEND
   TestMath
   TestSimdMask
   TestSimdStorage
+  TestCUDAWarp
 )
 
 foreach(TEST_NAME ${unit_test_names})
