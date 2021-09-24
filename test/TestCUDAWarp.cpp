@@ -254,6 +254,65 @@ void test_min(Kokkos::View<StorageType *> data,
   Kokkos::fence();
 }
 
+template <class StorageType>
+void test_add(Kokkos::View<StorageType *> data,
+              simd_warp_t<typename StorageType::value_type> val) {
+  Kokkos::parallel_for(
+      "simd::add", Kokkos::TeamPolicy<>(data.extent(0), 1, StorageType::size()),
+      KOKKOS_LAMBDA(const Kokkos::TeamPolicy<>::member_type &team) {
+        auto i  = team.league_rank();
+        data(i) = simd_warp_t<typename StorageType::value_type>(data(i)) + val;
+      });
+
+  Kokkos::fence();
+}
+
+template <class StorageType>
+void test_subtract(Kokkos::View<StorageType *> data,
+                   simd_warp_t<typename StorageType::value_type> val) {
+  Kokkos::parallel_for(
+      "simd::subtract",
+      Kokkos::TeamPolicy<>(data.extent(0), 1, StorageType::size()),
+      KOKKOS_LAMBDA(const Kokkos::TeamPolicy<>::member_type &team) {
+        auto i  = team.league_rank();
+        data(i) = simd_warp_t<typename StorageType::value_type>(data(i)) - val;
+      });
+
+  Kokkos::fence();
+}
+
+template <class StorageType>
+void test_multiply(Kokkos::View<StorageType *> data,
+                   simd_warp_t<typename StorageType::value_type> val) {
+  Kokkos::parallel_for(
+      "simd::multiply",
+      Kokkos::TeamPolicy<>(data.extent(0), 1, StorageType::size()),
+      KOKKOS_LAMBDA(const Kokkos::TeamPolicy<>::member_type &team) {
+        auto i  = team.league_rank();
+        data(i) = simd_warp_t<typename StorageType::value_type>(data(i)) * val;
+      });
+
+  Kokkos::fence();
+}
+
+template <class StorageType>
+void test_divide(Kokkos::View<StorageType *> data,
+                 simd_warp_t<typename StorageType::value_type> val) {
+  Kokkos::parallel_for(
+      "simd::divide",
+      Kokkos::TeamPolicy<>(data.extent(0), 1, StorageType::size()),
+      KOKKOS_LAMBDA(const Kokkos::TeamPolicy<>::member_type &team) {
+        auto i  = team.league_rank();
+        data(i) = simd_warp_t<typename StorageType::value_type>(data(i)) / val;
+      });
+
+  Kokkos::fence();
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////
+
 template <typename ScalarType>
 void do_test_abs(int viewExtent) {
   using storage_t        = simd_storage_t<ScalarType>;
@@ -483,6 +542,118 @@ void do_test_min(int viewExtent) {
   test_view_result("test_min_2", data, expectedData);
 }
 
+template <typename ScalarType>
+void do_test_add(int viewExtent) {
+  using storage_t        = simd_storage_t<ScalarType>;
+  const int simdSize     = storage_t::size();
+  const int expectedSize = viewExtent * storage_t::size();
+
+  auto data = create_data_with_unique_value<storage_t>("Test View", viewExtent,
+                                                       ScalarType{4.0});
+  test_add(data, simd_warp_t<ScalarType>{10.0});
+  Kokkos::View<ScalarType *, Kokkos::HostSpace> expectedData("expectedData",
+                                                             expectedSize);
+  Kokkos::deep_copy(expectedData, static_cast<ScalarType>(14.0));
+
+  test_view_result("test_add_1", data, expectedData);
+
+  data = create_data_positive<storage_t>("Test View 2", viewExtent);
+
+  for (int i = 0; i < viewExtent; ++i) {
+    for (int j = 0; j < simdSize; ++j) {
+      const auto index    = i * simdSize + j;
+      expectedData(index) = ScalarType{4.0} + static_cast<ScalarType>(index);
+    }
+  }
+
+  test_add(data, simd_warp_t<ScalarType>{4.0});
+  test_view_result("test_add_2", data, expectedData);
+}
+
+template <typename ScalarType>
+void do_test_subtract(int viewExtent) {
+  using storage_t        = simd_storage_t<ScalarType>;
+  const int simdSize     = storage_t::size();
+  const int expectedSize = viewExtent * storage_t::size();
+
+  auto data = create_data_with_unique_value<storage_t>("Test View", viewExtent,
+                                                       ScalarType{4.0});
+  test_subtract(data, simd_warp_t<ScalarType>{2.0});
+  Kokkos::View<ScalarType *, Kokkos::HostSpace> expectedData("expectedData",
+                                                             expectedSize);
+  Kokkos::deep_copy(expectedData, static_cast<ScalarType>(2.0));
+
+  test_view_result("test_subtract_1", data, expectedData);
+
+  data = create_data_positive<storage_t>("Test View 2", viewExtent);
+
+  for (int i = 0; i < viewExtent; ++i) {
+    for (int j = 0; j < simdSize; ++j) {
+      const auto index    = i * simdSize + j;
+      expectedData(index) = static_cast<ScalarType>(index) - ScalarType{4.0};
+    }
+  }
+
+  test_subtract(data, simd_warp_t<ScalarType>{4.0});
+  test_view_result("test_subtract_2", data, expectedData);
+}
+
+template <typename ScalarType>
+void do_test_multiply(int viewExtent) {
+  using storage_t        = simd_storage_t<ScalarType>;
+  const int simdSize     = storage_t::size();
+  const int expectedSize = viewExtent * storage_t::size();
+
+  auto data = create_data_with_unique_value<storage_t>("Test View", viewExtent,
+                                                       ScalarType{4.0});
+  test_multiply(data, simd_warp_t<ScalarType>{2.0});
+  Kokkos::View<ScalarType *, Kokkos::HostSpace> expectedData("expectedData",
+                                                             expectedSize);
+  Kokkos::deep_copy(expectedData, static_cast<ScalarType>(8.0));
+
+  test_view_result("test_multiply_1", data, expectedData);
+
+  data = create_data_positive<storage_t>("Test View 2", viewExtent);
+
+  for (int i = 0; i < viewExtent; ++i) {
+    for (int j = 0; j < simdSize; ++j) {
+      const auto index    = i * simdSize + j;
+      expectedData(index) = static_cast<ScalarType>(index) * ScalarType{4.0};
+    }
+  }
+
+  test_multiply(data, simd_warp_t<ScalarType>{4.0});
+  test_view_result("test_multiply_2", data, expectedData);
+}
+
+template <typename ScalarType>
+void do_test_divide(int viewExtent) {
+  using storage_t        = simd_storage_t<ScalarType>;
+  const int simdSize     = storage_t::size();
+  const int expectedSize = viewExtent * storage_t::size();
+
+  auto data = create_data_with_unique_value<storage_t>("Test View", viewExtent,
+                                                       ScalarType{4.0});
+  test_divide(data, simd_warp_t<ScalarType>{2.0});
+  Kokkos::View<ScalarType *, Kokkos::HostSpace> expectedData("expectedData",
+                                                             expectedSize);
+  Kokkos::deep_copy(expectedData, static_cast<ScalarType>(2.0));
+
+  test_view_result("test_divide_1", data, expectedData);
+
+  data = create_data_positive<storage_t>("Test View 2", viewExtent);
+
+  for (int i = 0; i < viewExtent; ++i) {
+    for (int j = 0; j < simdSize; ++j) {
+      const auto index    = i * simdSize + j;
+      expectedData(index) = static_cast<ScalarType>(index) / ScalarType{4.0};
+    }
+  }
+
+  test_divide(data, simd_warp_t<ScalarType>{4.0});
+  test_view_result("test_divide_2", data, expectedData);
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -541,6 +712,33 @@ TYPED_TEST_P(TestCudaWarp, test_min) {
   do_test_min<ScalarType>(extentSize);
 }
 
+TYPED_TEST_P(TestCudaWarp, test_add) {
+  constexpr auto extentSize = std::tuple_element<0, TypeParam>::type::value;
+  using ScalarType          = typename std::tuple_element<1, TypeParam>::type;
+
+  do_test_add<ScalarType>(extentSize);
+}
+
+TYPED_TEST_P(TestCudaWarp, test_subtract) {
+  constexpr auto extentSize = std::tuple_element<0, TypeParam>::type::value;
+  using ScalarType          = typename std::tuple_element<1, TypeParam>::type;
+
+  do_test_subtract<ScalarType>(extentSize);
+}
+
+TYPED_TEST_P(TestCudaWarp, test_multiply) {
+  constexpr auto extentSize = std::tuple_element<0, TypeParam>::type::value;
+  using ScalarType          = typename std::tuple_element<1, TypeParam>::type;
+
+  do_test_multiply<ScalarType>(extentSize);
+}
+TYPED_TEST_P(TestCudaWarp, test_divide) {
+  constexpr auto extentSize = std::tuple_element<0, TypeParam>::type::value;
+  using ScalarType          = typename std::tuple_element<1, TypeParam>::type;
+
+  do_test_divide<ScalarType>(extentSize);
+}
+
 using TestTypes =
     testing::Types<std::tuple<std::integral_constant<int, 1>, float>,
                    std::tuple<std::integral_constant<int, 2>, float>,
@@ -561,7 +759,8 @@ using TestTypes =
                    std::tuple<std::integral_constant<int, 1001>, double>>;
 
 REGISTER_TYPED_TEST_SUITE_P(TestCudaWarp, test_abs, test_sqrt, test_cbrt,
-                            test_exp, test_fma, test_max, test_min);
+                            test_exp, test_fma, test_max, test_min, test_add,
+                            test_subtract, test_multiply, test_divide);
 
 INSTANTIATE_TYPED_TEST_SUITE_P(test_simd_cuda_warp_set, TestCudaWarp,
                                TestTypes);
