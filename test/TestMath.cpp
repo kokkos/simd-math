@@ -48,6 +48,85 @@
 
 namespace Test {
 
+// Methods to create data
+template <class ScalarType>
+Kokkos::View<simd_t<ScalarType> *> create_data_with_uniq_value(
+    const std::string &name, int size, ScalarType value) {
+  Kokkos::View<simd_t<ScalarType> *> data(name, size);
+  Kokkos::deep_copy(data, simd_t<ScalarType>(value));
+
+  return data;
+}
+
+template <class ScalarType>
+Kokkos::View<simd_t<ScalarType> *> create_data_zero_to_size_positive(
+    std::string name, int size,
+    SIMD_CONSTRUCTOR constructor = SIMD_CONSTRUCTOR_SCALAR) {
+  Kokkos::View<simd_t<ScalarType> *> data(name, size);
+  auto data_h = Kokkos::create_mirror_view(Kokkos::HostSpace(),
+                                           data);  // this lives on host
+  for (size_t i = 0; i < data_h.extent(0); ++i) {
+    data_h(i) = create_simd_data<ScalarType>(constructor, i);
+  }
+  Kokkos::deep_copy(data, data_h);
+
+  return data;
+}
+
+template <class ScalarType>
+Kokkos::View<simd_t<ScalarType> *> create_data_zero_to_size_negative(
+    std::string name, int size,
+    SIMD_CONSTRUCTOR constructor = SIMD_CONSTRUCTOR_SCALAR) {
+  Kokkos::View<simd_t<ScalarType> *> data(name, size);
+  auto data_h = Kokkos::create_mirror_view(Kokkos::HostSpace(),
+                                           data);  // this lives on host
+  for (size_t i = 0; i < data_h.extent(0); ++i) {
+    data_h(i) = -create_simd_data<ScalarType>(constructor, i);
+  }
+  Kokkos::deep_copy(data, data_h);
+
+  return data;
+}
+
+template <class ScalarType>
+Kokkos::View<simd_t<ScalarType> *> create_data_sqrt(
+    std::string name, int size,
+    SIMD_CONSTRUCTOR constructor = SIMD_CONSTRUCTOR_SCALAR) {
+  Kokkos::View<simd_t<ScalarType> *> data(name, size);
+  auto data_h = Kokkos::create_mirror_view(Kokkos::HostSpace(),
+                                           data);  // this lives on host
+  int j = 0;  // We don't want a square higher than 10k *10k. After this  we
+              // restart the square from 0.
+  for (size_t i = 0; i < data_h.extent(0); ++i) {
+    data_h(i) = create_simd_data<ScalarType>(constructor, j) *
+                create_simd_data<ScalarType>(constructor, j);
+    j >= sqrtMaxIndex ? j = 0 : ++j;
+  }
+  Kokkos::deep_copy(data, data_h);
+
+  return data;
+}
+
+template <class ScalarType>
+Kokkos::View<simd_t<ScalarType> *> create_data_cbrt(
+    std::string name, int size,
+    SIMD_CONSTRUCTOR constructor = SIMD_CONSTRUCTOR_SCALAR) {
+  Kokkos::View<simd_t<ScalarType> *> data(name, size);
+  auto data_h = Kokkos::create_mirror_view(Kokkos::HostSpace(),
+                                           data);  // this lives on host
+  int j = 0;  // We don't want a cbrt higher than 5k * 5k * 5k. After this  we
+              // restart the square from 0.
+  for (size_t i = 0; i < data_h.extent(0); ++i) {
+    data_h(i) = create_simd_data<ScalarType>(constructor, j) *
+                create_simd_data<ScalarType>(constructor, j) *
+                create_simd_data<ScalarType>(constructor, j);
+    j >= cbrtMaxIndex ? j = 0 : ++j;
+  }
+  Kokkos::deep_copy(data, data_h);
+
+  return data;
+}
+
 template<class ScalarType>
 void test_abs(Kokkos::View<simd_t<ScalarType> *> data) {
   Kokkos::parallel_for(
@@ -203,7 +282,7 @@ void do_test_abs(SIMD_CONSTRUCTOR constructor, int viewExtent) {
     const int simdSize = simd_t<ScalarType>::size();
     const int expectedSize = viewExtent *  simd_t<ScalarType>::size();
 
-    auto data = create_data_with_uniq_value<simd_t<ScalarType>>("Test View", viewExtent, -4);
+    auto data = create_data_with_uniq_value<ScalarType>("Test View", viewExtent, -4);
 
     test_abs(data);
     test_view_result("test_abs_1", data, static_cast<ScalarType>(4.0));
@@ -238,7 +317,7 @@ void do_test_sqrt(SIMD_CONSTRUCTOR constructor, int viewExtent) {
     const int simdSize = simd_t<ScalarType>::size();
     const int expectedSize = viewExtent *  simd_t<ScalarType>::size();
 
-    auto data = create_data_with_uniq_value<simd_t<ScalarType>>("Test View", viewExtent, 16.0);
+    auto data = create_data_with_uniq_value<ScalarType>("Test View", viewExtent, 16.0);
 
     test_sqrt(data);
     test_view_result("test_sqrt_1", data, static_cast<ScalarType>(4.0));
@@ -268,7 +347,7 @@ void do_test_cbrt(SIMD_CONSTRUCTOR constructor, int viewExtent) {
     const int simdSize = simd_t<ScalarType>::size();
     const int expectedSize = viewExtent *  simd_t<ScalarType>::size();
 
-    auto data = create_data_with_uniq_value<simd_t<ScalarType>>("Test View", viewExtent, 27.0);
+    auto data = create_data_with_uniq_value<ScalarType>("Test View", viewExtent, 27.0);
 
     test_cbrt(data);
     test_view_result("test_cbrt_1", data, static_cast<ScalarType>(3.0));
@@ -298,7 +377,7 @@ void do_test_exp(SIMD_CONSTRUCTOR constructor, int viewExtent) {
     const int simdSize = simd_t<ScalarType>::size();
     const int expectedSize = viewExtent *  simd_t<ScalarType>::size();
 
-    auto data = create_data_with_uniq_value<simd_t<ScalarType>>("Test View", viewExtent, 1.0);
+    auto data = create_data_with_uniq_value<ScalarType>("Test View", viewExtent, 1.0);
 
     test_exp(data);
     test_view_result("test_exp_1", data, static_cast<ScalarType>(std::exp(1.0)));
@@ -325,7 +404,7 @@ void do_test_fma(SIMD_CONSTRUCTOR constructor, int viewExtent) {
     const int simdSize = simd_t<ScalarType>::size();
     const int expectedSize = viewExtent *  simd_t<ScalarType>::size();
 
-    auto data = create_data_with_uniq_value<simd_t<ScalarType>>("Test View", viewExtent, -4.0);
+    auto data = create_data_with_uniq_value<ScalarType>("Test View", viewExtent, -4.0);
 
     test_fma(data, simd_t<ScalarType>{2.0}, simd_t<ScalarType>{5.0});
     test_view_result("test_fma_1", data, static_cast<ScalarType>(-3.0));
@@ -367,7 +446,7 @@ void do_test_max(SIMD_CONSTRUCTOR constructor, int viewExtent) {
     const int simdSize = simd_t<ScalarType>::size();
     const int expectedSize = viewExtent *  simd_t<ScalarType>::size();
 
-    auto data = create_data_with_uniq_value<simd_t<ScalarType>>("Test View", viewExtent, 1.0);
+    auto data = create_data_with_uniq_value<ScalarType>("Test View", viewExtent, 1.0);
 
     test_max(data, simd_t<ScalarType>{10.0});
     test_view_result("test_max_1", data, static_cast<ScalarType>(10.0));
@@ -405,7 +484,7 @@ void do_test_min(SIMD_CONSTRUCTOR constructor, int viewExtent) {
     const int simdSize = simd_t<ScalarType>::size();
     const int expectedSize = viewExtent *  simd_t<ScalarType>::size();
 
-    auto data = create_data_with_uniq_value<simd_t<ScalarType>>("Test View", viewExtent, 4.0);
+    auto data = create_data_with_uniq_value<ScalarType>("Test View", viewExtent, 4.0);
 
     test_min(data, simd_t<ScalarType>{1.0});
     test_view_result("test_min_1", data, static_cast<ScalarType>(1.0));
@@ -444,7 +523,7 @@ void do_test_op_add(SIMD_CONSTRUCTOR constructor, int viewExtent) {
     const int simdSize = simd_t<ScalarType>::size();
     const int expectedSize = viewExtent *  simd_t<ScalarType>::size();
 
-    auto data = create_data_with_uniq_value<simd_t<ScalarType>>("Test View", viewExtent, 4.0);
+    auto data = create_data_with_uniq_value<ScalarType>("Test View", viewExtent, 4.0);
     test_op_add(data, simd_t<ScalarType>{10.0});
     test_view_result("test_op_add_1", data, static_cast<ScalarType>(14.0));
 
@@ -470,7 +549,7 @@ void do_test_op_sub(SIMD_CONSTRUCTOR constructor, int viewExtent) {
     const int simdSize = simd_t<ScalarType>::size();
     const int expectedSize = viewExtent *  simd_t<ScalarType>::size();
 
-    auto data = create_data_with_uniq_value<simd_t<ScalarType>>("Test View", viewExtent, 4.0);
+    auto data = create_data_with_uniq_value<ScalarType>("Test View", viewExtent, 4.0);
 
     test_op_sub(data, simd_t<ScalarType>{10.0});
     test_view_result("test_op_sub_1", data, static_cast<ScalarType>(-6.0));
@@ -497,7 +576,7 @@ void do_test_op_mul(SIMD_CONSTRUCTOR constructor, int viewExtent) {
     const int simdSize = simd_t<ScalarType>::size();
     const int expectedSize = viewExtent *  simd_t<ScalarType>::size();
 
-    auto data = create_data_with_uniq_value<simd_t<ScalarType>>("Test View", viewExtent, 4.0);
+    auto data = create_data_with_uniq_value<ScalarType>("Test View", viewExtent, 4.0);
 
     test_op_mul(data, simd_t<ScalarType>{10.0});
     test_view_result("test_op_mul_1", data, static_cast<ScalarType>(40.0));
@@ -524,7 +603,7 @@ void do_test_op_div(SIMD_CONSTRUCTOR constructor, int viewExtent) {
     const int simdSize = simd_t<ScalarType>::size();
     const int expectedSize = viewExtent *  simd_t<ScalarType>::size();
 
-    auto data = create_data_with_uniq_value<simd_t<ScalarType>>("Test View", viewExtent, 4.0);
+    auto data = create_data_with_uniq_value<ScalarType>("Test View", viewExtent, 4.0);
 
     test_op_div(data, simd_t<ScalarType>{10.0});
     test_view_result("test_op_div_1", data, static_cast<ScalarType>(0.4));
@@ -585,7 +664,7 @@ void do_test_multiplysign(SIMD_CONSTRUCTOR constructor, int viewExtent) {
     const int simdSize = simd_t<ScalarType>::size();
     const int expectedSize = viewExtent *  simd_t<ScalarType>::size();
 
-    auto data = create_data_with_uniq_value<simd_t<ScalarType>>("Test View", viewExtent, 4.0);
+    auto data = create_data_with_uniq_value<ScalarType>("Test View", viewExtent, 4.0);
 
     test_multiplysign(data, simd_t<ScalarType>{2.0});
     test_view_result("test_multiplysign_1", data, static_cast<ScalarType>(4.0));

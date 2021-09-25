@@ -49,49 +49,56 @@
 
 namespace Test {
 
-template <class StorageType, typename ScalarType>
-static Kokkos::View<StorageType *> create_data_with_unique_value(
-    const std::string &name, int size, ScalarType value) {
-  Kokkos::View<StorageType *> data(name, size);
-  Kokkos::View<ScalarType *> data_scalar((ScalarType *)(data.data()),
-                                         size * StorageType::size());
-  Kokkos::deep_copy(data_scalar, value);
+enum TestViewType {
+  FILL_WITH_VALUE,
+  INDEX_SEQUENCE_POSITIVE,
+  INDEX_SEQUENCE_NEGATIVE
+};
 
-  return data;
-}
-
-template <class StorageType>
-Kokkos::View<StorageType *> create_data_positive(std::string name, int size) {
+template <class StorageType, TestViewType type>
+Kokkos::View<StorageType *> create_view(const std::string &name, int size,
+                                        typename StorageType::value_type value = 0) {
   using ScalarType = typename StorageType::value_type;
-  Kokkos::View<StorageType *> data(name, size);
-  Kokkos::View<ScalarType *> data_scalar(
-      reinterpret_cast<ScalarType *>(data.data()), StorageType::size() * size);
 
-  Kokkos::parallel_for(
-      data_scalar.extent(0), KOKKOS_LAMBDA(const int i) {
-        data_scalar(i) = static_cast<ScalarType>(i);
-      });
+  Kokkos::View<StorageType *> data(name, size);
+
+  switch (type) {
+    case INDEX_SEQUENCE_POSITIVE: {
+      Kokkos::View<ScalarType *> data_scalar(
+          reinterpret_cast<ScalarType *>(data.data()),
+          StorageType::size() * size);
+
+      Kokkos::parallel_for(
+          data_scalar.extent(0), KOKKOS_LAMBDA(const int i) {
+            data_scalar(i) = static_cast<ScalarType>(i);
+          });
+
+    } break;
+
+    case INDEX_SEQUENCE_NEGATIVE: {
+      Kokkos::View<ScalarType *> data_scalar(
+          reinterpret_cast<ScalarType *>(data.data()),
+          StorageType::size() * size);
+
+      Kokkos::parallel_for(
+          data_scalar.extent(0), KOKKOS_LAMBDA(const int i) {
+            data_scalar(i) = -static_cast<ScalarType>(i);
+          });
+    } break;
+
+    case FILL_WITH_VALUE:
+    default: {
+      Kokkos::View<ScalarType *> data_scalar((ScalarType *)(data.data()),
+                                             size * StorageType::size());
+      Kokkos::deep_copy(data_scalar, value);
+    } break;
+  }
 
   return data;
 }
 
 template <class StorageType>
-Kokkos::View<StorageType *> create_data_negative(std::string name, int size) {
-  using ScalarType = typename StorageType::value_type;
-  Kokkos::View<StorageType *> data(name, size);
-  Kokkos::View<ScalarType *> data_scalar(
-      reinterpret_cast<ScalarType *>(data.data()), StorageType::size() * size);
-
-  Kokkos::parallel_for(
-      data_scalar.extent(0), KOKKOS_LAMBDA(const int i) {
-        data_scalar(i) = -static_cast<ScalarType>(i);
-      });
-
-  return data;
-}
-
-template <class StorageType>
-Kokkos::View<StorageType *> create_simd_data_sqrt(std::string name, int size) {
+Kokkos::View<StorageType *> create_view_for_sqrt_test(std::string name, int size) {
   using ScalarType = typename StorageType::value_type;
   Kokkos::View<StorageType *> data(name, size);
   Kokkos::View<ScalarType *> data_scalar(
@@ -107,7 +114,7 @@ Kokkos::View<StorageType *> create_simd_data_sqrt(std::string name, int size) {
 }
 
 template <class StorageType>
-Kokkos::View<StorageType *> create_simd_data_cbrt(std::string name, int size) {
+Kokkos::View<StorageType *> create_view_for_cbrt_test(std::string name, int size) {
   using ScalarType = typename StorageType::value_type;
 
   Kokkos::View<StorageType *> data(name, size);
@@ -314,12 +321,40 @@ void test_divide(Kokkos::View<StorageType *> data,
 ////////////////////////////////////////////////////////////////////////////////////////
 
 template <typename ScalarType>
+void do_test_constructor(int viewExtent) {
+  using storage_t        = simd_storage_t<ScalarType>;
+  const int simdSize     = storage_t::size();
+  const int expectedSize = viewExtent * storage_t::size();
+
+  auto data = create_view<storage_t, FILL_WITH_VALUE>("Test View", viewExtent,
+                                                       ScalarType{-4});
+
+  EXPECT_EQ(data.size(), viewExtent);
+
+  Kokkos::View<ScalarType *, Kokkos::HostSpace> expectedData("expectedData",
+                                                             expectedSize);
+  Kokkos::deep_copy(expectedData, static_cast<ScalarType>(-4.0));
+  test_view_result("test_constructor_1", data, expectedData);
+
+  data = create_view<storage_t, INDEX_SEQUENCE_POSITIVE>("Test View 2", viewExtent);
+  for (int i = 0; i < viewExtent; ++i) {
+    for (int j = 0; j < simdSize; ++j) {
+      expectedData(i * simdSize + j) =
+          static_cast<ScalarType>(i * simdSize + j);
+    }
+  }
+
+  test_abs(data);
+  test_view_result("test_constructor_2", data, expectedData);
+}
+
+template <typename ScalarType>
 void do_test_abs(int viewExtent) {
   using storage_t        = simd_storage_t<ScalarType>;
   const int simdSize     = storage_t::size();
   const int expectedSize = viewExtent * storage_t::size();
 
-  auto data = create_data_with_unique_value<storage_t>("Test View", viewExtent,
+  auto data = create_view<storage_t, FILL_WITH_VALUE>("Test View", viewExtent,
                                                        ScalarType{-4});
 
   test_abs(data);
@@ -328,7 +363,7 @@ void do_test_abs(int viewExtent) {
   Kokkos::deep_copy(expectedData, static_cast<ScalarType>(4.0));
   test_view_result("test_abs_1", data, expectedData);
 
-  data = create_data_positive<storage_t>("Test View 2", viewExtent);
+  data = create_view<storage_t, INDEX_SEQUENCE_POSITIVE>("Test View 2", viewExtent);
 
   for (int i = 0; i < viewExtent; ++i) {
     for (int j = 0; j < simdSize; ++j) {
@@ -340,7 +375,7 @@ void do_test_abs(int viewExtent) {
   test_abs(data);
   test_view_result("test_abs_2", data, expectedData);
 
-  data = create_data_negative<storage_t>("Test View 3", viewExtent);
+  data = create_view<storage_t, INDEX_SEQUENCE_NEGATIVE>("Test View 3", viewExtent);
 
   test_abs(data);
   test_view_result("test_abs_3", data, expectedData);
@@ -352,7 +387,7 @@ void do_test_sqrt(int viewExtent) {
   const int simdSize     = storage_t::size();
   const int expectedSize = viewExtent * storage_t::size();
 
-  auto data = create_data_with_unique_value<storage_t>("Test View", viewExtent,
+  auto data = create_view<storage_t, FILL_WITH_VALUE>("Test View", viewExtent,
                                                        ScalarType{16});
 
   test_sqrt(data);
@@ -363,7 +398,7 @@ void do_test_sqrt(int viewExtent) {
 
   test_view_result("test_sqrt_1", data, expectedData);
 
-  data = create_simd_data_sqrt<storage_t>("Test View 2", viewExtent);
+  data = create_view_for_sqrt_test<storage_t>("Test View 2", viewExtent);
 
   for (int i = 0; i < viewExtent; ++i) {
     for (int j = 0; j < simdSize; ++j) {
@@ -382,7 +417,7 @@ void do_test_cbrt(int viewExtent) {
   const int simdSize     = storage_t::size();
   const int expectedSize = viewExtent * storage_t::size();
 
-  auto data = create_data_with_unique_value<storage_t>("Test View", viewExtent,
+  auto data = create_view<storage_t, FILL_WITH_VALUE>("Test View", viewExtent,
                                                        ScalarType{27});
 
   test_cbrt(data);
@@ -393,7 +428,7 @@ void do_test_cbrt(int viewExtent) {
 
   test_view_result("test_cbrt_1", data, expectedData);
 
-  data = create_simd_data_cbrt<storage_t>("Test View 2", viewExtent);
+  data = create_view_for_cbrt_test<storage_t>("Test View 2", viewExtent);
 
   Kokkos::View<ScalarType *> results_scalar((ScalarType *)data.data(),
                                             data.extent(0) * storage_t::size());
@@ -417,7 +452,7 @@ void do_test_exp(int viewExtent) {
   const int simdSize     = storage_t::size();
   const int expectedSize = viewExtent * storage_t::size();
 
-  auto data = create_data_with_unique_value<storage_t>("Test View", viewExtent,
+  auto data = create_view<storage_t, FILL_WITH_VALUE>("Test View", viewExtent,
                                                        ScalarType{1});
 
   test_exp(data);
@@ -428,7 +463,7 @@ void do_test_exp(int viewExtent) {
 
   test_view_result("test_exp_1", data, expectedData);
 
-  data = create_data_positive<storage_t>("Test View 2", viewExtent);
+  data = create_view<storage_t, INDEX_SEQUENCE_POSITIVE>("Test View 2", viewExtent);
 
   for (int i = 0; i < viewExtent; ++i) {
     for (int j = 0; j < simdSize; ++j) {
@@ -447,7 +482,7 @@ void do_test_fma(int viewExtent) {
   const int simdSize     = storage_t::size();
   const int expectedSize = viewExtent * storage_t::size();
 
-  auto data = create_data_with_unique_value<storage_t>("Test View", viewExtent,
+  auto data = create_view<storage_t, FILL_WITH_VALUE>("Test View", viewExtent,
                                                        ScalarType{-4});
 
   test_fma(data, simd_warp_t<ScalarType>{2.0}, simd_warp_t<ScalarType>{5.0});
@@ -458,7 +493,7 @@ void do_test_fma(int viewExtent) {
 
   test_view_result("test_fma_1", data, expectedData);
 
-  data = create_data_positive<storage_t>("Test View 2", viewExtent);
+  data = create_view<storage_t, INDEX_SEQUENCE_POSITIVE>("Test View 2", viewExtent);
 
   for (int i = 0; i < viewExtent; ++i) {
     for (int j = 0; j < simdSize; ++j) {
@@ -470,7 +505,7 @@ void do_test_fma(int viewExtent) {
   test_fma(data, simd_warp_t<ScalarType>{4.0}, simd_warp_t<ScalarType>{7.0});
   test_view_result("test_fma_2", data, expectedData);
 
-  data = create_data_negative<storage_t>("Test View 2", viewExtent);
+  data = create_view<storage_t, INDEX_SEQUENCE_NEGATIVE>("Test View 2", viewExtent);
   for (int i = 0; i < viewExtent; ++i) {
     for (int j = 0; j < simdSize; ++j) {
       const auto index    = i * simdSize + j;
@@ -488,7 +523,7 @@ void do_test_max(int viewExtent) {
   const int simdSize     = storage_t::size();
   const int expectedSize = viewExtent * storage_t::size();
 
-  auto data = create_data_with_unique_value<storage_t>("Test View", viewExtent,
+  auto data = create_view<storage_t, FILL_WITH_VALUE>("Test View", viewExtent,
                                                        ScalarType{1.0});
 
   test_max(data, simd_warp_t<ScalarType>{10.0});
@@ -498,7 +533,7 @@ void do_test_max(int viewExtent) {
 
   test_view_result("test_max_1", data, expectedData);
 
-  data = create_simd_data_sqrt<storage_t>("Test View 2", viewExtent);
+  data = create_view_for_sqrt_test<storage_t>("Test View 2", viewExtent);
 
   for (int i = 0; i < viewExtent; ++i) {
     for (int j = 0; j < simdSize; ++j) {
@@ -518,7 +553,7 @@ void do_test_min(int viewExtent) {
   const int simdSize     = storage_t::size();
   const int expectedSize = viewExtent * storage_t::size();
 
-  auto data = create_data_with_unique_value<storage_t>("Test View", viewExtent,
+  auto data = create_view<storage_t, FILL_WITH_VALUE>("Test View", viewExtent,
                                                        ScalarType{4.0});
 
   test_min(data, simd_warp_t<ScalarType>{1.0});
@@ -528,7 +563,7 @@ void do_test_min(int viewExtent) {
 
   test_view_result("test_min_1", data, expectedData);
 
-  data = create_simd_data_sqrt<storage_t>("Test View 2", viewExtent);
+  data = create_view_for_sqrt_test<storage_t>("Test View 2", viewExtent);
 
   for (int i = 0; i < viewExtent; ++i) {
     for (int j = 0; j < simdSize; ++j) {
@@ -548,7 +583,7 @@ void do_test_add(int viewExtent) {
   const int simdSize     = storage_t::size();
   const int expectedSize = viewExtent * storage_t::size();
 
-  auto data = create_data_with_unique_value<storage_t>("Test View", viewExtent,
+  auto data = create_view<storage_t, FILL_WITH_VALUE>("Test View", viewExtent,
                                                        ScalarType{4.0});
   test_add(data, simd_warp_t<ScalarType>{10.0});
   Kokkos::View<ScalarType *, Kokkos::HostSpace> expectedData("expectedData",
@@ -557,7 +592,7 @@ void do_test_add(int viewExtent) {
 
   test_view_result("test_add_1", data, expectedData);
 
-  data = create_data_positive<storage_t>("Test View 2", viewExtent);
+  data = create_view<storage_t, INDEX_SEQUENCE_POSITIVE>("Test View 2", viewExtent);
 
   for (int i = 0; i < viewExtent; ++i) {
     for (int j = 0; j < simdSize; ++j) {
@@ -576,7 +611,7 @@ void do_test_subtract(int viewExtent) {
   const int simdSize     = storage_t::size();
   const int expectedSize = viewExtent * storage_t::size();
 
-  auto data = create_data_with_unique_value<storage_t>("Test View", viewExtent,
+  auto data = create_view<storage_t, FILL_WITH_VALUE>("Test View", viewExtent,
                                                        ScalarType{4.0});
   test_subtract(data, simd_warp_t<ScalarType>{2.0});
   Kokkos::View<ScalarType *, Kokkos::HostSpace> expectedData("expectedData",
@@ -585,7 +620,7 @@ void do_test_subtract(int viewExtent) {
 
   test_view_result("test_subtract_1", data, expectedData);
 
-  data = create_data_positive<storage_t>("Test View 2", viewExtent);
+  data = create_view<storage_t, INDEX_SEQUENCE_POSITIVE>("Test View 2", viewExtent);
 
   for (int i = 0; i < viewExtent; ++i) {
     for (int j = 0; j < simdSize; ++j) {
@@ -604,7 +639,7 @@ void do_test_multiply(int viewExtent) {
   const int simdSize     = storage_t::size();
   const int expectedSize = viewExtent * storage_t::size();
 
-  auto data = create_data_with_unique_value<storage_t>("Test View", viewExtent,
+  auto data = create_view<storage_t, FILL_WITH_VALUE>("Test View", viewExtent,
                                                        ScalarType{4.0});
   test_multiply(data, simd_warp_t<ScalarType>{2.0});
   Kokkos::View<ScalarType *, Kokkos::HostSpace> expectedData("expectedData",
@@ -613,7 +648,7 @@ void do_test_multiply(int viewExtent) {
 
   test_view_result("test_multiply_1", data, expectedData);
 
-  data = create_data_positive<storage_t>("Test View 2", viewExtent);
+  data = create_view<storage_t, INDEX_SEQUENCE_POSITIVE>("Test View 2", viewExtent);
 
   for (int i = 0; i < viewExtent; ++i) {
     for (int j = 0; j < simdSize; ++j) {
@@ -632,7 +667,7 @@ void do_test_divide(int viewExtent) {
   const int simdSize     = storage_t::size();
   const int expectedSize = viewExtent * storage_t::size();
 
-  auto data = create_data_with_unique_value<storage_t>("Test View", viewExtent,
+  auto data = create_view<storage_t, FILL_WITH_VALUE>("Test View", viewExtent,
                                                        ScalarType{4.0});
   test_divide(data, simd_warp_t<ScalarType>{2.0});
   Kokkos::View<ScalarType *, Kokkos::HostSpace> expectedData("expectedData",
@@ -641,7 +676,7 @@ void do_test_divide(int viewExtent) {
 
   test_view_result("test_divide_1", data, expectedData);
 
-  data = create_data_positive<storage_t>("Test View 2", viewExtent);
+  data = create_view<storage_t, INDEX_SEQUENCE_POSITIVE>("Test View 2", viewExtent);
 
   for (int i = 0; i < viewExtent; ++i) {
     for (int j = 0; j < simdSize; ++j) {
@@ -662,6 +697,13 @@ template <typename T>
 struct TestCudaWarp : testing::Test {};
 
 TYPED_TEST_SUITE_P(TestCudaWarp);
+
+TYPED_TEST_P(TestCudaWarp, test_constructor) {
+  constexpr auto extentSize = std::tuple_element<0, TypeParam>::type::value;
+  using ScalarType          = typename std::tuple_element<1, TypeParam>::type;
+
+  do_test_constructor<ScalarType>(extentSize);
+}
 
 TYPED_TEST_P(TestCudaWarp, test_abs) {
   constexpr auto extentSize = std::tuple_element<0, TypeParam>::type::value;
@@ -767,9 +809,10 @@ using TestTypes =
                    std::tuple<std::integral_constant<int, 100000>, double>,
                    std::tuple<std::integral_constant<int, 100001>, double>>;
 
-REGISTER_TYPED_TEST_SUITE_P(TestCudaWarp, test_abs, test_sqrt, test_cbrt,
-                            test_exp, test_fma, test_max, test_min, test_add,
-                            test_subtract, test_multiply, test_divide);
+REGISTER_TYPED_TEST_SUITE_P(TestCudaWarp, test_constructor, test_abs, test_sqrt,
+                            test_cbrt, test_exp, test_fma, test_max, test_min,
+                            test_add, test_subtract, test_multiply,
+                            test_divide);
 
 INSTANTIATE_TYPED_TEST_SUITE_P(test_simd_cuda_warp_set, TestCudaWarp,
                                TestTypes);
