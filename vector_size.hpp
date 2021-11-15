@@ -146,7 +146,7 @@ class simd<T, simd_abi::vector_size<N>> {
   SIMD_ALWAYS_INLINE inline simd() = default;
   SIMD_ALWAYS_INLINE inline static constexpr int size() { return N / sizeof(T); }
   SIMD_ALWAYS_INLINE inline simd(T value) { for(int i=0; i<size(); i++) reinterpret_cast<T*>(&m_value)[i] = value; }
-  explicit SIMD_ALWAYS_INLINE inline simd(const native_type& value):m_value(value) {}
+  SIMD_ALWAYS_INLINE explicit inline simd(const native_type& value):m_value(value) {}
   SIMD_ALWAYS_INLINE inline
   simd(storage_type const& value) {
     copy_from(value.data(), element_aligned_tag());
